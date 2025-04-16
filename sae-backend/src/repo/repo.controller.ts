@@ -1,31 +1,260 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  HttpStatus,
+  Res,
+  Query,
+  NotFoundException,
+  Post,
+  Body,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { RepoService } from './repo.service';
+import { Response } from 'express';
+
+interface WorkflowStep {
+  name: string;
+  status: string;
+  conclusion: string;
+  started_at: string;
+  completed_at: string;
+}
 
 @Controller('repo')
 export class RepoController {
   constructor(private readonly repoService: RepoService) {}
 
   //Obtener todos los classrooms de la organización
-  @Get('classrooms')
-  getClassrooms() {
-    return this.repoService.fetchClassrooms();
+  @Get('classrooms/')
+  async getClassrooms() {
+    try {
+      const classrooms = await this.repoService.fetchClassrooms();
+
+      if (!classrooms || !classrooms.length) {
+        throw new NotFoundException(
+          'No se encontraron classrooms en la organización.',
+        );
+      }
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Classrooms obtenidos correctamente.',
+        data: classrooms,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al obtener los classrooms.',
+      );
+    }
   }
 
   //Obtener todas las tareas de una classroom
   @Get('classrooms/:id/assignments')
-  getAssignments(@Param('id') classroomId: string) {
-    return this.repoService.fetchAssignments(classroomId);
+  async getAssignments(@Param('id') classroomId: string) {
+    if (!classroomId) {
+      throw new NotFoundException('El ID de la classroom es requerido.');
+    }
+
+    try {
+      const assignments = await this.repoService.fetchAssignments(classroomId);
+
+      if (!assignments || !assignments.length) {
+        throw new NotFoundException(
+          `No se encontraron asignaciones para la classroom con ID ${classroomId}.`,
+        );
+      }
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: `Asignaciones de la classroom ${classroomId} obtenidas correctamente.`,
+        data: assignments,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al obtener las asignaciones.',
+      );
+    }
   }
 
   //Obtener todos los repositorios de una tarea
   @Get('assignments/:id/repos')
-  getAssignmentRepos(@Param('id') assignmentId: string) {
-    return this.repoService.fetchAssignmentRepos(assignmentId);
+  async getAssignmentRepos(@Param('id') assignmentId: string) {
+    if (!assignmentId) {
+      throw new NotFoundException('El ID de la tarea es requerido.');
+    }
+
+    try {
+      const repos = await this.repoService.fetchAssignmentRepos(assignmentId);
+
+      if (!repos || !repos.length) {
+        throw new NotFoundException(
+          `No se encontraron repositorios para la tarea con ID ${assignmentId}.`,
+        );
+      }
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: `Repositorios de la tarea ${assignmentId} obtenidos correctamente.`,
+        data: repos,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al obtener los repositorios de la tarea.',
+      );
+    }
   }
 
   //Obtener todas las calificaciones de una tarea
   @Get('assignments/:id/grades')
-  getAssignmentGrades(@Param('id') assignmentId: string) {
-    return this.repoService.fetchAssignmentGrades(assignmentId);
+  async getAssignmentGrades(@Param('id') assignmentId: string) {
+    if (!assignmentId) {
+      throw new NotFoundException('El ID de la tarea es requerido.');
+    }
+
+    try {
+      const grades = await this.repoService.fetchAssignmentGrades(assignmentId);
+
+      if (!grades || !grades.length) {
+        throw new NotFoundException(
+          `No se encontraron calificaciones para la tarea con ID ${assignmentId}.`,
+        );
+      }
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: `Calificaciones de la tarea ${assignmentId} obtenidas correctamente.`,
+        data: grades,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al obtener las calificaciones de la tarea.',
+      );
+    }
+  }
+
+  // Obtener detalles del último workflow run de un repositorio
+  @Get('workflow/:repo')
+  async getLatestWorkflowDetails(@Param('repo') repo: string) {
+    try {
+      const latestRun = await this.repoService.fetchLatestWorkflowRun(repo);
+
+      if (!latestRun) {
+        throw new NotFoundException(
+          'No se encontró ningún workflow run para este repositorio.',
+        );
+      }
+
+      const jobs = await this.repoService.fetchWorkflowJobs(repo, latestRun.id);
+
+      if (!jobs.length) {
+        throw new NotFoundException('No se encontraron jobs en el workflow run.');
+      }
+
+      const testResults = jobs[0].steps
+        .filter(
+          (step: WorkflowStep) =>
+            step.name.toLowerCase().includes('compilación') ||
+            step.name.toLowerCase().includes('prueba'),
+        )
+        .map((step: WorkflowStep) => ({
+          test_name: step.name,
+          status: step.status,
+          conclusion: step.conclusion,
+          started_at: step.started_at,
+          completed_at: step.completed_at,
+        }));
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Último workflow run obtenido exitosamente.',
+        data: {
+          repo,
+          workflow_name: latestRun.name,
+          run_url: latestRun.html_url,
+          status: latestRun.status,
+          conclusion: latestRun.conclusion,
+          created_at: latestRun.created_at,
+          completed_at: latestRun.updated_at,
+          testResults,
+        },
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        error: 'Error obteniendo la información del workflow',
+        details: error.message,
+      });
+    }
+  }
+
+  // Obtener el contenido de un repositorio
+  @Get('repo/:repo/content')
+  async getRepoContent(
+    @Param('repo') repo: string,
+    @Query('ext') ext: string = '.cpp',
+  ) {
+    const content = await this.repoService.fetchRepoContent(repo, ext);
+
+    if (!content) {
+      throw new NotFoundException(
+        `No se encontró contenido válido para el repositorio "${repo}"`,
+      );
+    }
+
+    return content;
+  }
+
+  //Agregar feedback a un PR
+  @Post(':repo/feedback')
+  async addFeedbackToPR(
+    @Param('repo') repo: string,
+    @Body('feedback') feedback: string,
+    @Res() res: Response,
+  ) {
+    try {
+      if (!feedback) {
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ error: 'El feedback es obligatorio.' });
+      }
+
+      const owner = process.env.GITHUB_ORG || 'nombre-de-la-org';
+      const response = await this.repoService.postFeedbackToPR(
+        owner,
+        repo,
+        feedback,
+      );
+
+      return res.json({
+        message: 'Feedback agregado correctamente.',
+        data: response,
+      });
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({
+          error: 'Error agregando feedback al PR.',
+          details: error.message,
+        });
+    }
+  }
+
+  // Obtener todos los miembros de la organización
+  @Get('members')
+  async getOrganizationMembers() {
+    try {
+      const members = await this.repoService.fetchOrgMembers();
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Miembros de la organización obtenidos correctamente.',
+        data: members,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        error: 'Error obteniendo los miembros de la organización',
+        details: error.message,
+      });
+    }
   }
 }

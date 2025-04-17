@@ -78,7 +78,7 @@ export class FeedbackController {
   }
 
   //Obtener feedback por email y tarea
-  @Get('by-email-task')
+  @Get('search') 
   async getFeedbackByEmailAndTask(
     @Query('email') email: string,
     @Query('task') task: string,
@@ -103,7 +103,7 @@ export class FeedbackController {
   }
 
   //Buscar estudiantes por login (username)
-  @Get('student-email/:login')
+  @Get('students/:login/email')
   async getStudentEmailByLogin(@Param('login') login: string) {
     const student = await this.studentModel.findOne({ login });
 

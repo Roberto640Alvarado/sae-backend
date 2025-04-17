@@ -8,6 +8,8 @@ import {
   NotFoundException,
   Post,
   Body,
+  Headers,
+  HttpException,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { RepoService } from './repo.service';
@@ -50,7 +52,7 @@ export class RepoController {
   }
 
   //Obtener todas las tareas de una classroom
-  @Get('classrooms/:id/assignments')
+  @Get('classrooms/:id/assignments') 
   async getAssignments(@Param('id') classroomId: string) {
     if (!classroomId) {
       throw new NotFoundException('El ID de la classroom es requerido.');
@@ -78,7 +80,7 @@ export class RepoController {
   }
 
   //Obtener todos los repositorios de una tarea
-  @Get('assignments/:id/repos')
+  @Get('assignments/:id/accepted_assignments')
   async getAssignmentRepos(@Param('id') assignmentId: string) {
     if (!assignmentId) {
       throw new NotFoundException('El ID de la tarea es requerido.');
@@ -134,7 +136,7 @@ export class RepoController {
   }
 
   // Obtener detalles del último workflow run de un repositorio
-  @Get('workflow/:repo')
+  @Get(':repo/workflow/details')
   async getLatestWorkflowDetails(@Param('repo') repo: string) {
     try {
       const latestRun = await this.repoService.fetchLatestWorkflowRun(repo);
@@ -188,7 +190,7 @@ export class RepoController {
   }
 
   // Obtener el contenido de un repositorio
-  @Get('repo/:repo/content')
+  @Get(':repo/files')
   async getRepoContent(
     @Param('repo') repo: string,
     @Query('ext') ext: string = '.cpp',
@@ -205,7 +207,7 @@ export class RepoController {
   }
 
   //Agregar feedback a un PR
-  @Post(':repo/feedback')
+  @Post(':repo/pr/feedback')
   async addFeedbackToPR(
     @Param('repo') repo: string,
     @Body('feedback') feedback: string,
@@ -240,7 +242,7 @@ export class RepoController {
   }
 
   // Obtener todos los miembros de la organización
-  @Get('members')
+  @Get('org/members')
   async getOrganizationMembers() {
     try {
       const members = await this.repoService.fetchOrgMembers();
@@ -257,4 +259,23 @@ export class RepoController {
       });
     }
   }
+
+  @Get('whoami')
+async whoami(
+  @Query('org') org: string,
+  @Headers('authorization') authHeader: string,
+) {
+  if (!org || !authHeader) {
+    throw new HttpException('Faltan parámetros requeridos.', HttpStatus.BAD_REQUEST);
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+
+  try {
+    return await this.repoService.getGithubUserRole(token, org);
+  } catch (error) {
+    const isNotFound = error.message.includes('no es miembro');
+    throw new HttpException(error.message, isNotFound ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+}
 }

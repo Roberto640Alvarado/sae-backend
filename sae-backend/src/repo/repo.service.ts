@@ -5,27 +5,26 @@ import axios from 'axios';
 @Injectable()
 export class RepoService {
   private readonly logger = new Logger(RepoService.name);
-  private readonly GITHUB_HEADERS: any;
   private readonly ORG_NAME: string;
-
-  constructor(private configService: ConfigService) {
-    const token = this.configService.get<string>('GITHUB_TOKEN');
-    this.ORG_NAME = this.configService.get<string>('ORG_NAME')!;
-
-    this.GITHUB_HEADERS = {
-      Authorization: `token ${token}`,
+  private buildHeaders(token: string) {
+    return {
+      Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github.v3+json',
       'X-GitHub-Api-Version': '2022-11-28',
     };
   }
 
+  constructor(private configService: ConfigService) {
+    this.ORG_NAME = this.configService.get<string>('ORG_NAME')!;
+  }
+
   //Obtener todos los classrooms de la organización
-  async fetchClassrooms(): Promise<any> {
+  async fetchClassrooms(token: string): Promise<any> {
     const url = 'https://api.github.com/classrooms';
 
     try {
       const response = await axios.get(url, {
-        headers: this.GITHUB_HEADERS,
+        headers: this.buildHeaders(token),
       });
       return response.data;
     } catch (error) {
@@ -38,12 +37,12 @@ export class RepoService {
   }
 
   //Obtener todas las tareas de una classroom
-  async fetchAssignments(classroomId: string): Promise<any> {
+  async fetchAssignments(token: string, classroomId: string): Promise<any> {
     const url = `https://api.github.com/classrooms/${classroomId}/assignments`;
 
     try {
       const response = await axios.get(url, {
-        headers: this.GITHUB_HEADERS,
+        headers: this.buildHeaders(token),
       });
       return response.data;
     } catch (error) {
@@ -56,12 +55,15 @@ export class RepoService {
   }
 
   //Obtener todos los repositorios de una tarea
-  async fetchAssignmentRepos(assignmentId: string): Promise<any> {
+  async fetchAssignmentRepos(
+    token: string,
+    assignmentId: string,
+  ): Promise<any> {
     const url = `https://api.github.com/assignments/${assignmentId}/accepted_assignments`;
 
     try {
       const response = await axios.get(url, {
-        headers: this.GITHUB_HEADERS,
+        headers: this.buildHeaders(token),
       });
       return response.data;
     } catch (error) {
@@ -74,12 +76,15 @@ export class RepoService {
   }
 
   //Obtener todas las calificaciones de una tarea
-  async fetchAssignmentGrades(assignmentId: string): Promise<any> {
+  async fetchAssignmentGrades(
+    token: string,
+    assignmentId: string,
+  ): Promise<any> {
     const url = `https://api.github.com/assignments/${assignmentId}/grades`;
 
     try {
       const response = await axios.get(url, {
-        headers: this.GITHUB_HEADERS,
+        headers: this.buildHeaders(token),
       });
       return response.data;
     } catch (error) {
@@ -92,28 +97,32 @@ export class RepoService {
   }
 
   //Función para obtener el último run de un workflow
-  async fetchLatestWorkflowRun(repo: string) {
+  async fetchLatestWorkflowRun(token: string, repo: string) {
     const url = `https://api.github.com/repos/${this.ORG_NAME}/${repo}/actions/runs`;
-    const response = await axios.get(url, { headers: this.GITHUB_HEADERS });
+    const response = await axios.get(url, {
+      headers: this.buildHeaders(token),
+    });
 
     if (!response.data.workflow_runs.length) return null;
     return response.data.workflow_runs[0];
   }
 
   //Función para obtener los detalles de un workflow
-  async fetchWorkflowJobs(repo: string, runId: number) {
+  async fetchWorkflowJobs(token: string, repo: string, runId: number) {
     const url = `https://api.github.com/repos/${this.ORG_NAME}/${repo}/actions/runs/${runId}/jobs`;
-    const response = await axios.get(url, { headers: this.GITHUB_HEADERS });
+    const response = await axios.get(url, {
+      headers: this.buildHeaders(token),
+    });
 
     return response.data.jobs;
   }
 
   //Función para obtener el contenido de un repositorio
-  async fetchRepoContent(repo: string, extension: string) {
+  async fetchRepoContent(token: string, repo: string, extension: string) {
     try {
       const repoContentsUrl = `https://api.github.com/repos/${this.ORG_NAME}/${repo}/contents/`;
       const contentsResponse = await axios.get(repoContentsUrl, {
-        headers: this.GITHUB_HEADERS,
+        headers: this.buildHeaders(token),
       });
 
       const matchingFiles = contentsResponse.data.filter(
@@ -130,7 +139,7 @@ export class RepoService {
 
       const readmeUrl = `https://api.github.com/repos/${this.ORG_NAME}/${repo}/contents/README.md`;
       const readmeResponse = await axios.get(readmeUrl, {
-        headers: this.GITHUB_HEADERS,
+        headers: this.buildHeaders(token),
       });
 
       const codeResponse = await axios.get(codeUrl);
@@ -149,6 +158,7 @@ export class RepoService {
 
   //Si existe rama feedback, la crea desde main
   private async ensureFeedbackBranchExists(
+    token: string,
     owner: string,
     repo: string,
   ): Promise<void> {
@@ -158,7 +168,7 @@ export class RepoService {
     try {
       await axios.get(
         `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${feedbackBranch}`,
-        { headers: this.GITHUB_HEADERS },
+        { headers: this.buildHeaders(token) },
       );
       this.logger.log(`✅ La rama '${feedbackBranch}' ya existe.`);
     } catch (error) {
@@ -169,7 +179,7 @@ export class RepoService {
 
         const baseRef = await axios.get(
           `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${baseBranch}`,
-          { headers: this.GITHUB_HEADERS },
+          { headers: this.buildHeaders(token) },
         );
         const baseSha = baseRef.data.object.sha;
 
@@ -179,7 +189,7 @@ export class RepoService {
             ref: `refs/heads/${feedbackBranch}`,
             sha: baseSha,
           },
-          { headers: this.GITHUB_HEADERS },
+          { headers: this.buildHeaders(token) },
         );
 
         this.logger.log(`✅ Rama '${feedbackBranch}' creada correctamente.`);
@@ -193,6 +203,7 @@ export class RepoService {
 
   //Función para crear un Pull Request con el feedback
   async createPullRequest(
+    token: string,
     owner: string,
     repo: string,
     feedback: string,
@@ -200,11 +211,11 @@ export class RepoService {
     const feedbackBranch = 'feedback';
     const branchName = `auto-feedback-${Date.now()}`;
 
-    await this.ensureFeedbackBranchExists(owner, repo);
+    await this.ensureFeedbackBranchExists(token, owner, repo);
 
     const baseRef = await axios.get(
       `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${feedbackBranch}`,
-      { headers: this.GITHUB_HEADERS },
+      { headers: this.buildHeaders(token) },
     );
     const baseSha = baseRef.data.object.sha;
 
@@ -214,7 +225,7 @@ export class RepoService {
         ref: `refs/heads/${branchName}`,
         sha: baseSha,
       },
-      { headers: this.GITHUB_HEADERS },
+      { headers: this.buildHeaders(token) },
     );
 
     this.logger.log(
@@ -227,7 +238,7 @@ export class RepoService {
     try {
       const fileData = await axios.get(
         `https://api.github.com/repos/${owner}/${repo}/contents/feedback.md?ref=${feedbackBranch}`,
-        { headers: this.GITHUB_HEADERS },
+        { headers: this.buildHeaders(token) },
       );
       fileSha = fileData.data.sha;
       existingContent = Buffer.from(fileData.data.content, 'base64').toString(
@@ -247,7 +258,7 @@ export class RepoService {
         sha: fileSha || undefined,
         branch: branchName,
       },
-      { headers: this.GITHUB_HEADERS },
+      { headers: this.buildHeaders(token) },
     );
 
     const pr = await axios.post(
@@ -258,7 +269,7 @@ export class RepoService {
         base: feedbackBranch,
         body: 'Este PR ha sido creado automáticamente para la retroalimentación.',
       },
-      { headers: this.GITHUB_HEADERS },
+      { headers: this.buildHeaders(token) },
     );
 
     this.logger.log(`✅ Pull Request #${pr.data.number} creado en '${repo}'.`);
@@ -267,12 +278,13 @@ export class RepoService {
 
   //Verificar si hay un Pull Request abierto
   async getOpenPullRequest(
+    token: string,
     owner: string,
     repo: string,
   ): Promise<number | null> {
     const url = `https://api.github.com/repos/${owner}/${repo}/pulls?state=open`;
 
-    const res = await axios.get(url, { headers: this.GITHUB_HEADERS });
+    const res = await axios.get(url, { headers: this.buildHeaders(token) });
 
     if (!res.data.length) {
       this.logger.warn(`No hay Pull Requests abiertos en '${repo}'.`);
@@ -284,6 +296,7 @@ export class RepoService {
 
   //Agregar un comentario al Pull Request
   async addCommentToPullRequest(
+    token: string,
     owner: string,
     repo: string,
     pullNumber: number,
@@ -296,7 +309,7 @@ export class RepoService {
       {
         body: feedbackMessage,
       },
-      { headers: this.GITHUB_HEADERS },
+      { headers: this.buildHeaders(token) },
     );
 
     this.logger.log(
@@ -307,19 +320,21 @@ export class RepoService {
 
   //Crear un Pull Request o agregar un comentario si ya existe
   async postFeedbackToPR(
+    token: string,
     owner: string,
     repo: string,
     feedback: string,
   ): Promise<any> {
     try {
-      let pullNumber = await this.getOpenPullRequest(owner, repo);
+      let pullNumber = await this.getOpenPullRequest(token, owner, repo);
 
       if (!pullNumber) {
         this.logger.log(`No hay PR abierto en '${repo}'. Creando uno nuevo...`);
-        pullNumber = await this.createPullRequest(owner, repo, feedback);
+        pullNumber = await this.createPullRequest(token, owner, repo, feedback);
       }
 
       return await this.addCommentToPullRequest(
+        token,
         owner,
         repo,
         pullNumber,
@@ -332,7 +347,7 @@ export class RepoService {
   }
 
   //Obtener miembros de la organización
-  async fetchOrgMembers(): Promise<any[]> {
+  async fetchOrgMembers(token: string): Promise<any[]> {
     try {
       const members: any[] = [];
       let page = 1;
@@ -343,7 +358,7 @@ export class RepoService {
         const response = await axios.get(
           `https://api.github.com/orgs/${this.ORG_NAME}/members`,
           {
-            headers: this.GITHUB_HEADERS,
+            headers: this.buildHeaders(token),
             params: {
               per_page: perPage,
               page,
@@ -372,19 +387,21 @@ export class RepoService {
   //Obtener información del usuario autenticado
   async getAuthenticatedUser(token: string) {
     const userResponse = await axios.get('https://api.github.com/user', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: this.buildHeaders(token),
     });
-  
-    const emailResponse = await axios.get('https://api.github.com/user/emails', {
-      headers: {
-        Authorization: `Bearer ${token}`,
+
+    const emailResponse = await axios.get(
+      'https://api.github.com/user/emails',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
-  
-    const primaryEmail = emailResponse.data.find((e) => e.primary)?.email || null;
-  
+    );
+
+    const primaryEmail =
+      emailResponse.data.find((e) => e.primary)?.email || null;
+
     return {
       login: userResponse.data.login,
       name: userResponse.data.name,
@@ -398,17 +415,14 @@ export class RepoService {
       const user = await this.getAuthenticatedUser(token);
       const username = user.login;
       const email = user.email;
-  
+
       const url = `https://api.github.com/orgs/${org}/memberships/${username}`;
       const response = await axios.get(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
+        headers: this.buildHeaders(token),
       });
-  
+
       const { state, role } = response.data;
-  
+
       return {
         username,
         email,
@@ -416,12 +430,15 @@ export class RepoService {
         role,
       };
     } catch (error) {
-      this.logger.error('Error al consultar membresía en la organización:', error.response?.data || error.message);
-  
+      this.logger.error(
+        'Error al consultar membresía en la organización:',
+        error.response?.data || error.message,
+      );
+
       if (error.response?.status === 404) {
         throw new Error('El usuario no es miembro de la organización');
       }
-  
+
       throw new Error('Error al consultar GitHub');
     }
   }

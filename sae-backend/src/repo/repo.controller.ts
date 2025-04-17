@@ -29,9 +29,16 @@ export class RepoController {
 
   //Obtener todos los classrooms de la organización
   @Get('classrooms/')
-  async getClassrooms() {
+  async getClassrooms(@Headers('authorization') authHeader: string) {
+    if (!authHeader) {
+      throw new NotFoundException(
+        'Token no proporcionado en el header Authorization.',
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
     try {
-      const classrooms = await this.repoService.fetchClassrooms();
+      const classrooms = await this.repoService.fetchClassrooms(token);
 
       if (!classrooms || !classrooms.length) {
         throw new NotFoundException(
@@ -52,14 +59,27 @@ export class RepoController {
   }
 
   //Obtener todas las tareas de una classroom
-  @Get('classrooms/:id/assignments') 
-  async getAssignments(@Param('id') classroomId: string) {
+  @Get('classrooms/:id/assignments')
+  async getAssignments(
+    @Param('id') classroomId: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+    if (!authHeader) {
+      throw new NotFoundException(
+        'Token no proporcionado en el header Authorization.',
+      );
+    }
+
     if (!classroomId) {
       throw new NotFoundException('El ID de la classroom es requerido.');
     }
+    const token = authHeader.replace('Bearer ', '');
 
     try {
-      const assignments = await this.repoService.fetchAssignments(classroomId);
+      const assignments = await this.repoService.fetchAssignments(
+        token,
+        classroomId,
+      );
 
       if (!assignments || !assignments.length) {
         throw new NotFoundException(
@@ -81,13 +101,27 @@ export class RepoController {
 
   //Obtener todos los repositorios de una tarea
   @Get('assignments/:id/accepted_assignments')
-  async getAssignmentRepos(@Param('id') assignmentId: string) {
+  async getAssignmentRepos(
+    @Param('id') assignmentId: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+    if (!authHeader) {
+      throw new NotFoundException(
+        'Token no proporcionado en el header Authorization.',
+      );
+    }
+
     if (!assignmentId) {
       throw new NotFoundException('El ID de la tarea es requerido.');
     }
 
+    const token = authHeader.replace('Bearer ', '');
+
     try {
-      const repos = await this.repoService.fetchAssignmentRepos(assignmentId);
+      const repos = await this.repoService.fetchAssignmentRepos(
+        token,
+        assignmentId,
+      );
 
       if (!repos || !repos.length) {
         throw new NotFoundException(
@@ -109,13 +143,27 @@ export class RepoController {
 
   //Obtener todas las calificaciones de una tarea
   @Get('assignments/:id/grades')
-  async getAssignmentGrades(@Param('id') assignmentId: string) {
+  async getAssignmentGrades(
+    @Param('id') assignmentId: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+    if (!authHeader) {
+      throw new NotFoundException(
+        'Token no proporcionado en el header Authorization.',
+      );
+    }
+
     if (!assignmentId) {
       throw new NotFoundException('El ID de la tarea es requerido.');
     }
 
+    const token = authHeader.replace('Bearer ', '');
+
     try {
-      const grades = await this.repoService.fetchAssignmentGrades(assignmentId);
+      const grades = await this.repoService.fetchAssignmentGrades(
+        token,
+        assignmentId,
+      );
 
       if (!grades || !grades.length) {
         throw new NotFoundException(
@@ -137,9 +185,21 @@ export class RepoController {
 
   // Obtener detalles del último workflow run de un repositorio
   @Get(':repo/workflow/details')
-  async getLatestWorkflowDetails(@Param('repo') repo: string) {
+  async getLatestWorkflowDetails(
+    @Param('repo') repo: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+    if (!authHeader) {
+      throw new NotFoundException(
+        'Token no proporcionado en el header Authorization.',
+      );
+    }
+    const token = authHeader.replace('Bearer ', '');
     try {
-      const latestRun = await this.repoService.fetchLatestWorkflowRun(repo);
+      const latestRun = await this.repoService.fetchLatestWorkflowRun(
+        token,
+        repo,
+      );
 
       if (!latestRun) {
         throw new NotFoundException(
@@ -147,10 +207,16 @@ export class RepoController {
         );
       }
 
-      const jobs = await this.repoService.fetchWorkflowJobs(repo, latestRun.id);
+      const jobs = await this.repoService.fetchWorkflowJobs(
+        token,
+        repo,
+        latestRun.id,
+      );
 
       if (!jobs.length) {
-        throw new NotFoundException('No se encontraron jobs en el workflow run.');
+        throw new NotFoundException(
+          'No se encontraron jobs en el workflow run.',
+        );
       }
 
       const testResults = jobs[0].steps
@@ -194,8 +260,16 @@ export class RepoController {
   async getRepoContent(
     @Param('repo') repo: string,
     @Query('ext') ext: string = '.cpp',
+    @Headers('authorization') authHeader: string,
   ) {
-    const content = await this.repoService.fetchRepoContent(repo, ext);
+    if (!authHeader) {
+      throw new NotFoundException(
+        'Token no proporcionado en el header Authorization.',
+      );
+    }
+    const token = authHeader.replace('Bearer ', '');
+
+    const content = await this.repoService.fetchRepoContent(token, repo, ext);
 
     if (!content) {
       throw new NotFoundException(
@@ -212,7 +286,14 @@ export class RepoController {
     @Param('repo') repo: string,
     @Body('feedback') feedback: string,
     @Res() res: Response,
+    @Headers('authorization') authHeader: string,
   ) {
+    if (!authHeader) {
+      throw new NotFoundException(
+        'Token no proporcionado en el header Authorization.',
+      );
+    }
+    const token = authHeader.replace('Bearer ', '');
     try {
       if (!feedback) {
         return res
@@ -222,6 +303,7 @@ export class RepoController {
 
       const owner = process.env.GITHUB_ORG || 'nombre-de-la-org';
       const response = await this.repoService.postFeedbackToPR(
+        token,
         owner,
         repo,
         feedback,
@@ -232,20 +314,24 @@ export class RepoController {
         data: response,
       });
     } catch (error) {
-      return res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({
-          error: 'Error agregando feedback al PR.',
-          details: error.message,
-        });
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        error: 'Error agregando feedback al PR.',
+        details: error.message,
+      });
     }
   }
 
   // Obtener todos los miembros de la organización
   @Get('org/members')
-  async getOrganizationMembers() {
+  async getOrganizationMembers(@Headers('authorization') authHeader: string) {
+    if (!authHeader) {
+      throw new NotFoundException(
+        'Token no proporcionado en el header Authorization.',
+      );
+    }
+    const token = authHeader.replace('Bearer ', '');
     try {
-      const members = await this.repoService.fetchOrgMembers();
+      const members = await this.repoService.fetchOrgMembers(token);
 
       return {
         statusCode: HttpStatus.OK,
@@ -261,21 +347,27 @@ export class RepoController {
   }
 
   @Get('whoami')
-async whoami(
-  @Query('org') org: string,
-  @Headers('authorization') authHeader: string,
-) {
-  if (!org || !authHeader) {
-    throw new HttpException('Faltan parámetros requeridos.', HttpStatus.BAD_REQUEST);
-  }
+  async whoami(
+    @Query('org') org: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+    if (!org || !authHeader) {
+      throw new HttpException(
+        'Faltan parámetros requeridos.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
-  const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.replace('Bearer ', '');
 
-  try {
-    return await this.repoService.getGithubUserRole(token, org);
-  } catch (error) {
-    const isNotFound = error.message.includes('no es miembro');
-    throw new HttpException(error.message, isNotFound ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR);
+    try {
+      return await this.repoService.getGithubUserRole(token, org);
+    } catch (error) {
+      const isNotFound = error.message.includes('no es miembro');
+      throw new HttpException(
+        error.message,
+        isNotFound ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
-}
 }

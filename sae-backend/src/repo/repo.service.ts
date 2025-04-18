@@ -170,11 +170,11 @@ export class RepoService {
         `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${feedbackBranch}`,
         { headers: this.buildHeaders(token) },
       );
-      this.logger.log(`✅ La rama '${feedbackBranch}' ya existe.`);
+      this.logger.log(`La rama '${feedbackBranch}' ya existe.`);
     } catch (error) {
       if (error.response?.status === 404) {
         this.logger.log(
-          `📌 La rama '${feedbackBranch}' no existe. Creándola desde '${baseBranch}'...`,
+          `La rama '${feedbackBranch}' no existe. Creándola desde '${baseBranch}'...`,
         );
 
         const baseRef = await axios.get(
@@ -192,10 +192,10 @@ export class RepoService {
           { headers: this.buildHeaders(token) },
         );
 
-        this.logger.log(`✅ Rama '${feedbackBranch}' creada correctamente.`);
+        this.logger.log(`Rama '${feedbackBranch}' creada correctamente.`);
       } else {
         throw new Error(
-          `❌ Error verificando la rama '${feedbackBranch}': ${error.message}`,
+          `Error verificando la rama '${feedbackBranch}': ${error.message}`,
         );
       }
     }
@@ -229,7 +229,7 @@ export class RepoService {
     );
 
     this.logger.log(
-      `✅ Rama '${branchName}' creada desde '${feedbackBranch}'.`,
+      `Rama '${branchName}' creada desde '${feedbackBranch}'.`,
     );
 
     let fileSha: string | null = null;
@@ -245,7 +245,7 @@ export class RepoService {
         'utf-8',
       );
     } catch {
-      this.logger.log('📌 No se encontró feedback.md. Se creará uno nuevo.');
+      this.logger.log('No se encontró feedback.md. Se creará uno nuevo.');
     }
 
     const formattedFeedback = `### Feedback generado el ${new Date().toLocaleString()}\n\n${feedback}\n\n${existingContent}`;
@@ -272,7 +272,7 @@ export class RepoService {
       { headers: this.buildHeaders(token) },
     );
 
-    this.logger.log(`✅ Pull Request #${pr.data.number} creado en '${repo}'.`);
+    this.logger.log(`Pull Request #${pr.data.number} creado en '${repo}'.`);
     return pr.data.number;
   }
 
@@ -313,7 +313,7 @@ export class RepoService {
     );
 
     this.logger.log(
-      `✅ Comentario agregado en el PR #${pullNumber} de '${repo}'.`,
+      `Comentario agregado en el PR #${pullNumber} de '${repo}'.`,
     );
     return res.data;
   }
@@ -341,7 +341,13 @@ export class RepoService {
         feedback,
       );
     } catch (error) {
-      this.logger.error('❌ Error procesando el feedback:', error.message);
+      this.logger.error('Error procesando el feedback:', {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       throw error;
     }
   }

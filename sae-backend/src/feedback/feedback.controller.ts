@@ -30,26 +30,36 @@ export class FeedbackController {
   //Obtener el estado del feedback por nombre de repositorio
   @Get('status/:repo')
   async getFeedbackStatus(@Param('repo') repo: string) {
+    if (!repo || typeof repo !== 'string' || repo.trim() === '') {
+      throw new HttpException(
+        'El parámetro "repo" es requerido y debe ser válido.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const feedback = await this.feedbackModel.findOne({ repo });
 
     if (!feedback) {
-      return { repo, status: 'pending' };
+      return {
+        repo,
+        status: 'pending',
+        message: 'Este repositorio aún no tiene feedback generado.',
+      };
     }
 
-    return { repo, status: feedback.status };
+    return {
+      repo,
+      status: feedback.status,
+      message: 'Estado actual del feedback recuperado correctamente.',
+    };
   }
 
   //Generar feedback con Deepseek
-  @Post(':repo/deepseek')
-  async generateWithDeepseek(
-    @Param('repo') repo: string,
-    @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
-  ) {
+  @Post('deepseek')
+  async generateWithDeepseek(@Body() body: GenerateFeedbackParams) {
     try {
-      const feedback = await this.feedbackService.generateFeedbackWithDeepseek({
-        repo,
-        ...body,
-      });
+      const feedback =
+        await this.feedbackService.generateFeedbackWithDeepseek(body);
       return { message: 'Feedback generado con DeepSeek', feedback };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -57,32 +67,22 @@ export class FeedbackController {
   }
 
   //Generar feedback con OpenAI
-  @Post(':repo/openai')
-  async generateWithOpenAI(
-    @Param('repo') repo: string,
-    @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
-  ) {
+  @Post('openai')
+  async generateWithOpenAI(@Body() body: GenerateFeedbackParams) {
     try {
-      const feedback = await this.feedbackService.generateFeedbackWithOpenAI({
-        repo,
-        ...body,
-      });
+      const feedback =
+        await this.feedbackService.generateFeedbackWithOpenAI(body);
       return { message: 'Feedback generado con OpenAI', feedback };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
   //Generar feedback con Gemini
-  @Post(':repo/gemini')
-  async generateWithGemini(
-    @Param('repo') repo: string,
-    @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
-  ) {
+  @Post('gemini')
+  async generateWithGemini(@Body() body: GenerateFeedbackParams) {
     try {
-      const feedback = await this.feedbackService.generateFeedbackWithGemini({
-        repo,
-        ...body,
-      });
+      const feedback =
+        await this.feedbackService.generateFeedbackWithGemini(body);
       return { message: 'Feedback generado con Gemini', feedback };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);

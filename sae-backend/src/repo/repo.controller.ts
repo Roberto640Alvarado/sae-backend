@@ -301,7 +301,7 @@ export class RepoController {
           .json({ error: 'El feedback es obligatorio.' });
       }
 
-      const owner = process.env.GITHUB_ORG || 'nombre-de-la-org';
+      const owner = process.env.ORG_NAME!;
       const response = await this.repoService.postFeedbackToPR(
         token,
         owner,

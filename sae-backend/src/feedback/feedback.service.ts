@@ -36,14 +36,22 @@ export class FeedbackService {
     email: string;
     task: string;
     feedback: string;
-    grade: string;
+    gradeValue: number;
+    gradeTotal: number;
+    modelIA?: string;
+    status?: string;
   }) {
-    await this.feedbackModel.create(data);
-    this.logger.log(`✅ Feedback guardado en MongoDB para ${data.repo}`);
+    await this.feedbackModel.create({
+      ...data,
+      status: 'generated',
+    });
+    this.logger.log(`Feedback guardado en MongoDB para ${data.repo}`);
   }
 
   // Método para generar feedback con Deepseek
-  async generateFeedbackWithDeepseek(params: GenerateFeedbackParams): Promise<string> {
+  async generateFeedbackWithDeepseek(
+    params: GenerateFeedbackParams,
+  ): Promise<string> {
     const prompt = buildFeedbackPrompt(params.readme, params.code, {
       language: params.language,
       subject: params.subject,
@@ -52,30 +60,38 @@ export class FeedbackService {
       constraints: params.constraints,
       style: params.style,
     });
-  
+
     try {
       const response = await this.deepseek.chat.completions.create({
         model: 'deepseek-reasoner',
         messages: [
           { role: 'system', content: prompt },
-          { role: 'user', content: 'Por favor, proporciona una retroalimentación detallada del código proporcionado.' },
+          {
+            role: 'user',
+            content:
+              'Por favor, proporciona una retroalimentación detallada del código proporcionado.',
+          },
         ],
         temperature: 1,
         top_p: 0.95,
       });
-  
-      const feedback = response?.choices?.[0]?.message?.content || 'No se pudo generar feedback.';
-      await this.saveFeedbackToDB({ ...params, feedback });
-  
+
+      const feedback =
+        response?.choices?.[0]?.message?.content ||
+        'No se pudo generar feedback.';
+      await this.saveFeedbackToDB({ ...params, feedback, status: 'generated' });
+
       return feedback;
     } catch (error) {
-      this.logger.error('❌ Error generando feedback con Deepseek', error);
+      this.logger.error('Error generando feedback con Deepseek', error);
       throw new Error('No se pudo generar la retroalimentación.');
     }
   }
-  
+
   // Método para generar feedback con OpenAI
-  async generateFeedbackWithOpenAI(params: GenerateFeedbackParams): Promise<string> {
+  async generateFeedbackWithOpenAI(
+    params: GenerateFeedbackParams,
+  ): Promise<string> {
     const prompt = buildFeedbackPrompt(params.readme, params.code, {
       language: params.language,
       subject: params.subject,
@@ -84,30 +100,38 @@ export class FeedbackService {
       constraints: params.constraints,
       style: params.style,
     });
-  
+
     try {
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: prompt },
-          { role: 'user', content: 'Por favor, proporciona una evaluación detallada del código proporcionado.' },
+          {
+            role: 'user',
+            content:
+              'Por favor, proporciona una evaluación detallada del código proporcionado.',
+          },
         ],
         temperature: 0.7,
         top_p: 0.95,
       });
-  
-      const feedback = response?.choices?.[0]?.message?.content || 'No se pudo generar feedback.';
-      await this.saveFeedbackToDB({ ...params, feedback });
-  
+
+      const feedback =
+        response?.choices?.[0]?.message?.content ||
+        'No se pudo generar feedback.';
+      await this.saveFeedbackToDB({ ...params, feedback, status: 'generated'  });
+
       return feedback;
     } catch (error) {
-      this.logger.error('❌ Error generando feedback con OpenAI', error);
+      this.logger.error('Error generando feedback con OpenAI', error);
       throw new Error('No se pudo generar la retroalimentación.');
     }
   }
-  
+
   //Método para generar feedback con Gemini
-  async generateFeedbackWithGemini(params: GenerateFeedbackParams): Promise<string> {
+  async generateFeedbackWithGemini(
+    params: GenerateFeedbackParams,
+  ): Promise<string> {
     const prompt = buildFeedbackPrompt(params.readme, params.code, {
       language: params.language,
       subject: params.subject,
@@ -116,7 +140,7 @@ export class FeedbackService {
       constraints: params.constraints,
       style: params.style,
     });
-  
+
     try {
       const generationConfig = {
         temperature: 1,
@@ -125,21 +149,21 @@ export class FeedbackService {
         max_output_tokens: 8192,
         response_mime_type: 'text/plain',
       };
-  
+
       const model = this.gemini.getGenerativeModel({
         model: 'gemini-1.5-pro',
         generationConfig,
       });
-  
+
       const result = await model.generateContent(prompt);
-      const feedback = result?.response?.text() || 'No se pudo generar feedback.';
-      await this.saveFeedbackToDB({ ...params, feedback });
-  
+      const feedback =
+        result?.response?.text() || 'No se pudo generar feedback.';
+      await this.saveFeedbackToDB({ ...params, feedback, status: 'generated'  });
+
       return feedback;
     } catch (error) {
-      this.logger.error('❌ Error generando feedback con Gemini', error);
+      this.logger.error('Error generando feedback con Gemini', error);
       throw new Error('No se pudo generar la retroalimentación.');
     }
   }
-  
 }

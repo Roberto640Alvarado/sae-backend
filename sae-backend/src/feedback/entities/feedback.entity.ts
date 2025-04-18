@@ -17,8 +17,21 @@ export class Feedback {
   @Prop({ required: true })
   feedback: string;
 
-  @Prop({ required: true })
-  grade: string;
+  @Prop({ required: true, type: Number, min: 0 })
+  gradeValue: number;
+
+  @Prop({ required: true, type: Number, min: 1 })
+  gradeTotal: number;
+
+  @Prop({
+    required: true,
+    enum: ['pending', 'generated', 'sent'],
+    default: 'pending',
+  })
+  status: 'pending' | 'generated' | 'sent';
+
+  @Prop()
+  modelIA?: string;
 
   @Prop()
   createdAt?: Date;

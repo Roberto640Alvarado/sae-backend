@@ -3,7 +3,10 @@ export interface GenerateFeedbackParams {
     repo: string;
     readme: string;
     code: string;
-    grade: string;
+    gradeValue: number;
+    gradeTotal: number;
+    modelIA: string;
+    status: string;
     email: string;
     task: string;
     language: string;

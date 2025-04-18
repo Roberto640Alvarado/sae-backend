@@ -25,7 +25,19 @@ export class FeedbackController {
 
     @InjectModel(Student.name)
     private studentModel: Model<StudentDocument>,
-) {}
+  ) {}
+
+  //Obtener el estado del feedback por nombre de repositorio
+  @Get('status/:repo')
+  async getFeedbackStatus(@Param('repo') repo: string) {
+    const feedback = await this.feedbackModel.findOne({ repo });
+
+    if (!feedback) {
+      return { repo, status: 'pending' };
+    }
+
+    return { repo, status: feedback.status };
+  }
 
   //Generar feedback con Deepseek
   @Post(':repo/deepseek')
@@ -44,7 +56,7 @@ export class FeedbackController {
     }
   }
 
-    //Generar feedback con OpenAI
+  //Generar feedback con OpenAI
   @Post(':repo/openai')
   async generateWithOpenAI(
     @Param('repo') repo: string,
@@ -78,7 +90,7 @@ export class FeedbackController {
   }
 
   //Obtener feedback por email y tarea
-  @Get('search') 
+  @Get('search')
   async getFeedbackByEmailAndTask(
     @Query('email') email: string,
     @Query('task') task: string,

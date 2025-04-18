@@ -151,7 +151,7 @@ export class FeedbackService {
       };
 
       const model = this.gemini.getGenerativeModel({
-        model: 'gemini-1.5-pro',
+        model: 'gemini-2.0-flash-lite',
         generationConfig,
       });
 

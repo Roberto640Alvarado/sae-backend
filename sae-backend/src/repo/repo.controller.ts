@@ -14,6 +14,12 @@ import {
 } from '@nestjs/common';
 import { RepoService } from './repo.service';
 import { Response } from 'express';
+import {
+  Feedback,
+  FeedbackDocument,
+} from '../feedback/entities/feedback.entity';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 interface WorkflowStep {
   name: string;
@@ -25,7 +31,12 @@ interface WorkflowStep {
 
 @Controller('repo')
 export class RepoController {
-  constructor(private readonly repoService: RepoService) {}
+  constructor(
+    private readonly repoService: RepoService,
+
+    @InjectModel(Feedback.name)
+    private readonly feedbackModel: Model<FeedbackDocument>,
+  ) {}
 
   //Obtener todos los classrooms de la organización
   @Get('classrooms/')
@@ -307,6 +318,11 @@ export class RepoController {
         owner,
         repo,
         feedback,
+      );
+
+      await this.feedbackModel.findOneAndUpdate(
+        { repo },
+        { $set: { status: 'sent' } },
       );
 
       return res.json({

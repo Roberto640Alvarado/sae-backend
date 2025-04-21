@@ -55,8 +55,11 @@ export class FeedbackController {
   }
 
   //Generar feedback con Deepseek
-  @Post('deepseek')
-  async generateWithDeepseek(@Body() body: GenerateFeedbackParams) {
+  @Post(':repo/deepseek')
+  async generateWithDeepseek(
+    @Param('repo') repo: string,
+    @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
+  ) {
     try {
       const feedback =
         await this.feedbackService.generateFeedbackWithDeepseek(body);
@@ -67,8 +70,11 @@ export class FeedbackController {
   }
 
   //Generar feedback con OpenAI
-  @Post('openai')
-  async generateWithOpenAI(@Body() body: GenerateFeedbackParams) {
+  @Post(':repo/openai')
+  async generateWithOpenAI(
+    @Param('repo') repo: string,
+    @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
+  ) {
     try {
       const feedback =
         await this.feedbackService.generateFeedbackWithOpenAI(body);
@@ -77,9 +83,11 @@ export class FeedbackController {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-  //Generar feedback con Gemini
-  @Post('gemini')
-  async generateWithGemini(@Body() body: GenerateFeedbackParams) {
+  @Post(':repo/gemini')
+  async generateWithGemini(
+    @Param('repo') repo: string,
+    @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
+  )  {
     try {
       const feedback =
         await this.feedbackService.generateFeedbackWithGemini(body);

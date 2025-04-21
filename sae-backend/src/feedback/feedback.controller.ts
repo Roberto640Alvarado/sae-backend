@@ -62,7 +62,10 @@ export class FeedbackController {
   ) {
     try {
       const feedback =
-        await this.feedbackService.generateFeedbackWithDeepseek(body);
+      await this.feedbackService.generateFeedbackWithDeepseek({
+        repo,
+        ...body,
+      });
       return { message: 'Feedback generado con DeepSeek', feedback };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -77,7 +80,10 @@ export class FeedbackController {
   ) {
     try {
       const feedback =
-        await this.feedbackService.generateFeedbackWithOpenAI(body);
+        await this.feedbackService.generateFeedbackWithOpenAI({
+          repo,
+          ...body,
+        });
       return { message: 'Feedback generado con OpenAI', feedback };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -90,7 +96,10 @@ export class FeedbackController {
   )  {
     try {
       const feedback =
-        await this.feedbackService.generateFeedbackWithGemini(body);
+        await this.feedbackService.generateFeedbackWithGemini({
+          repo,
+          ...body,
+        });
       return { message: 'Feedback generado con Gemini', feedback };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);

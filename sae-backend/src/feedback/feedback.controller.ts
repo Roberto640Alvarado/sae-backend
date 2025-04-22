@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Patch,
   Get,
   Query,
   Body,
@@ -61,8 +62,7 @@ export class FeedbackController {
     @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
   ) {
     try {
-      const feedback =
-      await this.feedbackService.generateFeedbackWithDeepseek({
+      const feedback = await this.feedbackService.generateFeedbackWithDeepseek({
         repo,
         ...body,
       });
@@ -79,11 +79,10 @@ export class FeedbackController {
     @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
   ) {
     try {
-      const feedback =
-        await this.feedbackService.generateFeedbackWithOpenAI({
-          repo,
-          ...body,
-        });
+      const feedback = await this.feedbackService.generateFeedbackWithOpenAI({
+        repo,
+        ...body,
+      });
       return { message: 'Feedback generado con OpenAI', feedback };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -93,13 +92,12 @@ export class FeedbackController {
   async generateWithGemini(
     @Param('repo') repo: string,
     @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
-  )  {
+  ) {
     try {
-      const feedback =
-        await this.feedbackService.generateFeedbackWithGemini({
-          repo,
-          ...body,
-        });
+      const feedback = await this.feedbackService.generateFeedbackWithGemini({
+        repo,
+        ...body,
+      });
       return { message: 'Feedback generado con Gemini', feedback };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -141,5 +139,39 @@ export class FeedbackController {
     }
 
     return { email: student.email };
+  }
+
+  //Actualizar el feedback
+  @Patch('update')
+  async updateFeedbackByQuery(
+    @Query('email') email: string,
+    @Query('task') task: string,
+    @Body('feedback') feedback: string,
+  ) {
+    if (!email || !task || !feedback) {
+      throw new HttpException(
+        'Los campos email, task y feedback son requeridos.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const updated = await this.feedbackModel.findOneAndUpdate(
+      { email, task },
+      { feedback },
+      { new: true },
+    );
+
+    if (!updated) {
+      throw new HttpException(
+        'No se encontró una retroalimentación con ese email y tarea.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Feedback actualizado correctamente.',
+      data: updated,
+    };
   }
 }

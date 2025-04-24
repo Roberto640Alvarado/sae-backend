@@ -39,35 +39,43 @@ export class RepoController {
   ) {}
 
   //Obtener todos los classrooms de la organización
-  @Get('classrooms/')
-  async getClassrooms(@Headers('authorization') authHeader: string) {
-    if (!authHeader) {
-      throw new NotFoundException(
-        'Token no proporcionado en el header Authorization.',
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    try {
-      const classrooms = await this.repoService.fetchClassrooms(token);
-
-      if (!classrooms || !classrooms.length) {
-        throw new NotFoundException(
-          'No se encontraron classrooms en la organización.',
-        );
-      }
-
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Classrooms obtenidos correctamente.',
-        data: classrooms,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Error al obtener los classrooms.',
-      );
-    }
+  //Obtener todos los classrooms de la organización
+@Get('classrooms')
+async getClassrooms(
+  @Headers('authorization') authHeader: string,
+  @Query('orgName') orgName: string,
+) {
+  if (!authHeader) {
+    throw new NotFoundException(
+      'Token no proporcionado en el header Authorization.',
+    );
   }
+
+  const token = authHeader.replace('Bearer ', '');
+  try {
+    const classrooms = await this.repoService.fetchClassrooms(token, orgName);
+
+    if (!classrooms || !classrooms.length) {
+      throw new NotFoundException(
+        'No se encontraron classrooms en la organización.',
+      );
+    }
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Classrooms obtenidos correctamente.',
+      data: classrooms,
+    };
+  } catch (error) {
+    if (error instanceof HttpException) {
+      throw error;
+    }
+    throw new InternalServerErrorException(
+      'Error al obtener los classrooms.',
+    );
+  }
+}
+
 
   //Obtener todas las tareas de una classroom
   @Get('classrooms/:id/assignments')

@@ -18,23 +18,30 @@ export class RepoService {
     this.ORG_NAME = this.configService.get<string>('ORG_NAME')!;
   }
 
-  //Obtener todos los classrooms de la organización
-  async fetchClassrooms(token: string): Promise<any> {
-    const url = 'https://api.github.com/classrooms';
+//Obtener todos los classrooms filtrados por nombre de organización
+async fetchClassrooms(token: string, orgName: string): Promise<any[]> {
+  const url = 'https://api.github.com/classrooms';
 
-    try {
-      const response = await axios.get(url, {
-        headers: this.buildHeaders(token),
-      });
-      return response.data;
-    } catch (error) {
-      this.logger.error(
-        'Error obteniendo classrooms:',
-        error.response?.data || error.message,
-      );
-      throw error;
-    }
+  try {
+    const response = await axios.get(url, {
+      headers: this.buildHeaders(token),
+    });
+
+    const filtered = response.data.filter((classroom: any) => {
+      const prefix = classroom.name.split('-')[0];
+      return prefix.toLowerCase() === orgName.toLowerCase();
+    });
+
+    return filtered;
+  } catch (error) {
+    this.logger.error(
+      'Error obteniendo classrooms:',
+      error.response?.data || error.message,
+    );
+    throw error;
   }
+}
+
 
   //Obtener todas las tareas de una classroom
   async fetchAssignments(token: string, classroomId: string): Promise<any> {
@@ -45,6 +52,8 @@ export class RepoService {
         headers: this.buildHeaders(token),
       });
       return response.data;
+
+
     } catch (error) {
       this.logger.error(
         `Error obteniendo tareas del aula ${classroomId}:`,

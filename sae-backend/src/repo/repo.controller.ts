@@ -43,7 +43,7 @@ export class RepoController {
 @Get('classrooms')
 async getClassrooms(
   @Headers('authorization') authHeader: string,
-  @Query('orgName') orgName: string,
+  @Query('orgId') orgId: string,
 ) {
   if (!authHeader) {
     throw new NotFoundException(
@@ -53,7 +53,7 @@ async getClassrooms(
 
   const token = authHeader.replace('Bearer ', '');
   try {
-    const classrooms = await this.repoService.fetchClassrooms(token, orgName);
+    const classrooms = await this.repoService.fetchClassrooms(token, orgId);
 
     if (!classrooms || !classrooms.length) {
       throw new NotFoundException(

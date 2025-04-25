@@ -18,30 +18,31 @@ export class RepoService {
     this.ORG_NAME = this.configService.get<string>('ORG_NAME')!;
   }
 
-//Obtener todos los classrooms filtrados por nombre de organización
-async fetchClassrooms(token: string, orgName: string): Promise<any[]> {
-  const url = 'https://api.github.com/classrooms';
+  //Obtener todos los classrooms filtrados por nombre de organización
+  async fetchClassrooms(token: string, orgId: string): Promise<any[]> {
+    const url = 'https://api.github.com/classrooms';
 
-  try {
-    const response = await axios.get(url, {
-      headers: this.buildHeaders(token),
-    });
+    try {
+      const response = await axios.get(url, {
+        headers: this.buildHeaders(token),
+      });
 
-    const filtered = response.data.filter((classroom: any) => {
-      const prefix = classroom.name.split('-')[0];
-      return prefix.toLowerCase() === orgName.toLowerCase();
-    });
+      const allClassrooms = response.data;
 
-    return filtered;
-  } catch (error) {
-    this.logger.error(
-      'Error obteniendo classrooms:',
-      error.response?.data || error.message,
-    );
-    throw error;
+      // Filtrar por orgId presente en la URL
+      const filteredClassrooms = allClassrooms.filter((classroom: any) => {
+        return classroom.url.includes(`classrooms/${orgId}-`);
+      });
+
+      return filteredClassrooms;
+    } catch (error) {
+      this.logger.error(
+        'Error obteniendo classrooms:',
+        error.response?.data || error.message,
+      );
+      throw error;
+    }
   }
-}
-
 
   //Obtener todas las tareas de una classroom
   async fetchAssignments(token: string, classroomId: string): Promise<any> {
@@ -52,8 +53,6 @@ async fetchClassrooms(token: string, orgName: string): Promise<any[]> {
         headers: this.buildHeaders(token),
       });
       return response.data;
-
-
     } catch (error) {
       this.logger.error(
         `Error obteniendo tareas del aula ${classroomId}:`,
@@ -237,9 +236,7 @@ async fetchClassrooms(token: string, orgName: string): Promise<any[]> {
       { headers: this.buildHeaders(token) },
     );
 
-    this.logger.log(
-      `Rama '${branchName}' creada desde '${feedbackBranch}'.`,
-    );
+    this.logger.log(`Rama '${branchName}' creada desde '${feedbackBranch}'.`);
 
     let fileSha: string | null = null;
     let existingContent = '';

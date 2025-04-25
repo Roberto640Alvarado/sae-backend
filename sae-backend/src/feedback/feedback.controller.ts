@@ -14,7 +14,6 @@ import { GenerateFeedbackParams } from '../shared/dto/generate-feedback.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Feedback, FeedbackDocument } from './entities/feedback.entity';
-import { Student, StudentDocument } from './entities/student.entity';
 
 @Controller('feedback')
 export class FeedbackController {
@@ -24,8 +23,6 @@ export class FeedbackController {
     @InjectModel(Feedback.name)
     private feedbackModel: Model<FeedbackDocument>,
 
-    @InjectModel(Student.name)
-    private studentModel: Model<StudentDocument>,
   ) {}
 
   //Obtener el estado del feedback por nombre de repositorio
@@ -127,18 +124,6 @@ export class FeedbackController {
     }
 
     return feedbackData;
-  }
-
-  //Buscar estudiantes por login (username)
-  @Get('students/:login/email')
-  async getStudentEmailByLogin(@Param('login') login: string) {
-    const student = await this.studentModel.findOne({ login });
-
-    if (!student) {
-      throw new HttpException('Estudiante no encontrado', HttpStatus.NOT_FOUND);
-    }
-
-    return { email: student.email };
   }
 
   //Actualizar el feedback

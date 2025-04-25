@@ -63,14 +63,9 @@ export class FeedbackService {
 
     try {
       const response = await this.deepseek.chat.completions.create({
-        model: 'deepseek-reasoner',
+        model: 'deepseek-chat',
         messages: [
           { role: 'system', content: prompt },
-          {
-            role: 'user',
-            content:
-              'Por favor, proporciona una retroalimentación detallada del código proporcionado.',
-          },
         ],
         temperature: 1,
         top_p: 0.95,

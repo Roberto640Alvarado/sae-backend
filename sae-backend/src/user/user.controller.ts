@@ -37,6 +37,7 @@ import {
             message: result.message,
             user: {
               email: result.email,
+              name: result.name,
               githubUsername: result.githubUsername,
               isRoot: result.isRoot,
               organizations: result.organizations,

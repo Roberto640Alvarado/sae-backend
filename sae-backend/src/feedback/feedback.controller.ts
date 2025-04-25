@@ -105,16 +105,16 @@ export class FeedbackController {
   @Get('search')
   async getFeedbackByEmailAndTask(
     @Query('email') email: string,
-    @Query('idTask') task: string,
+    @Query('idTaskGithubClassroom') idTaskGithubClassroom: string,
   ) {
-    if (!email || !task) {
+    if (!email || !idTaskGithubClassroom) {
       throw new HttpException(
         'Se requieren los parámetros email y task',
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    const feedbackData = await this.feedbackModel.findOne({ email, task });
+    const feedbackData = await this.feedbackModel.findOne({ email, idTaskGithubClassroom });
 
     if (!feedbackData) {
       throw new HttpException(

@@ -34,7 +34,7 @@ export class FeedbackService {
   private async saveFeedbackToDB(data: {
     repo: string;
     email: string;
-    task: string;
+    idTaskGithubClassroom: string;
     feedback: string;
     gradeValue: number;
     gradeTotal: number;

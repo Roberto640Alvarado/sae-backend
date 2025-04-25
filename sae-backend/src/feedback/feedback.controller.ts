@@ -108,7 +108,7 @@ export class FeedbackController {
   @Get('search')
   async getFeedbackByEmailAndTask(
     @Query('email') email: string,
-    @Query('task') task: string,
+    @Query('idTask') task: string,
   ) {
     if (!email || !task) {
       throw new HttpException(
@@ -145,7 +145,7 @@ export class FeedbackController {
   @Patch('update')
   async updateFeedbackByQuery(
     @Query('email') email: string,
-    @Query('task') task: string,
+    @Query('idTask') task: string,
     @Body('feedback') feedback: string,
   ) {
     if (!email || !task || !feedback) {

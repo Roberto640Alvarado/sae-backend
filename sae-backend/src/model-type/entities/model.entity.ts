@@ -18,7 +18,7 @@ export class Model {
   modelType: Types.ObjectId;
 
   @Prop({ required: true })
-  owner: string; 
+  orgId: string; 
 }
 
 export const ModelSchema = SchemaFactory.createForClass(Model);

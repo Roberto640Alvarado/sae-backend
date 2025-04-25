@@ -9,6 +9,9 @@ export class User {
   email: string;
 
   @Prop({ type: String, default: null })
+  name: string | null;
+
+  @Prop({ type: String, default: null })
   githubUsername: string | null;
 
   @Prop({ type: String, default: null })

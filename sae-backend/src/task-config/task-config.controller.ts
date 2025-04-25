@@ -23,9 +23,9 @@ import {
     //Crear configuración de tarea
     @Post('create')
     async createConfig(@Body() body: Partial<TaskConfig>) {
-      const { taskIdClassroom } = body;
+      const { idTaskGithubClassroom } = body;
   
-      const exists = await this.configModel.findOne({ taskIdClassroom });
+      const exists = await this.configModel.findOne({ idTaskGithubClassroom });
       if (exists) {
         throw new HttpException(
           'Ya existe una configuración para esta tarea.',
@@ -41,9 +41,9 @@ import {
     }
   
     //Obtener configuración por ID de tarea de classroom
-    @Get(':taskIdClassroom')
-    async getConfig(@Param('taskIdClassroom') taskIdClassroom: string) {
-      const config = await this.configModel.findOne({ taskIdClassroom });
+    @Get(':idTaskGithubClassroom')
+    async getConfig(@Param('idTaskGithubClassroom') idTaskGithubClassroom: string) {
+      const config = await this.configModel.findOne({ idTaskGithubClassroom });
   
       if (!config) {
         throw new HttpException(
@@ -56,13 +56,13 @@ import {
     }
   
     //Editar configuración por ID de tarea classroom
-    @Put(':taskIdClassroom')
+    @Put(':idTaskGithubClassroom')
     async updateConfig(
-      @Param('taskIdClassroom') taskIdClassroom: string,
+      @Param('idTaskGithubClassroom') idTaskGithubClassroom: string,
       @Body() body: Partial<TaskConfig>,
     ) {
       const updated = await this.configModel.findOneAndUpdate(
-        { taskIdClassroom },
+        { idTaskGithubClassroom },
         body,
         { new: true },
       );
@@ -81,9 +81,9 @@ import {
     }
   
     //Eliminar configuración por ID de tarea de classroom
-    @Delete(':taskIdClassroom')
-    async deleteConfig(@Param('taskIdClassroom') taskIdClassroom: string) {
-      const deleted = await this.configModel.findOneAndDelete({ taskIdClassroom });
+    @Delete(':idTaskGithubClassroom')
+    async deleteConfig(@Param('idTaskGithubClassroom') idTaskGithubClassroom: string) {
+      const deleted = await this.configModel.findOneAndDelete({ idTaskGithubClassroom });
   
       if (!deleted) {
         throw new HttpException(

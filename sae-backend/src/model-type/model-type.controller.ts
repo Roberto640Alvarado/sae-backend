@@ -13,7 +13,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ModelType, ModelTypeDocument } from './entities/model-type.entity';
 import { Model as ModelEntity, ModelDocument } from './entities/model.entity';
-import { Teacher, TeacherDocument } from '../teacher/entities/teacher.entity';
+import { User, UserDocument } from '../user/entities/user.entity';
 
 @Controller('model-types')
 export class ModelTypeController {
@@ -24,8 +24,8 @@ export class ModelTypeController {
     @InjectModel(ModelEntity.name)
     private readonly modelModel: Model<ModelDocument>,
 
-    @InjectModel(Teacher.name)
-    private readonly teacherModel: Model<TeacherDocument>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
   ) {}
 
   //Traer todos los tipos de modelo (proveedores)
@@ -45,9 +45,9 @@ export class ModelTypeController {
   //Crear un modelo de IA
   @Post('create')
   async createModel(@Body() body: Partial<ModelEntity>) {
-    const { name, version, apiKey, modelType, owner } = body;
+    const { name, version, apiKey, modelType, orgId } = body;
 
-    if (!name || !version || !apiKey || !modelType || !owner) {
+    if (!name || !version || !apiKey || !modelType || !orgId) {
       throw new HttpException(
         'Todos los campos son requeridos.',
         HttpStatus.BAD_REQUEST,
@@ -63,11 +63,13 @@ export class ModelTypeController {
       );
     }
 
-    //Validar que el owner (correo) exista en la colección teachers
-    const ownerExists = await this.teacherModel.findOne({ email: owner });
-    if (!ownerExists) {
+    //Validar que el orgId exista en alguna organización de usuarios
+    const orgExists = await this.userModel.exists({
+      'organizations.orgId': orgId,
+    });
+    if (!orgExists) {
       throw new HttpException(
-        'El catedrático (owner) no está registrado.',
+        'El orgId especificado no existe en las organizaciones registradas.',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -78,7 +80,7 @@ export class ModelTypeController {
       version,
       apiKey,
       modelType,
-      owner,
+      orgId,
     });
 
     return {
@@ -98,26 +100,29 @@ export class ModelTypeController {
     return { message: 'Modelo eliminado correctamente.', id };
   }
 
-  //Obtener todos los modelos de un owner (por email)
+  //Obtener todos los modelos de un organización
   @Get('search')
-  async getModelsByOwner(@Query('owner') owner: string) {
-    if (!owner) {
+  async getModelsByOwner(@Query('orgId') orgId: string) {
+    if (!orgId) {
       throw new HttpException(
-        'El campo "owner" es requerido.',
+        'El campo "orgId" es requerido.',
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    const ownerExists = await this.teacherModel.findOne({ email: owner });
-    if (!ownerExists) {
+    //Validar que el orgId exista en alguna organización de usuarios
+    const orgExists = await this.userModel.exists({
+      'organizations.orgId': orgId,
+    });
+    if (!orgExists) {
       throw new HttpException(
-        'El catedrático (owner) no está registrado.',
+        'El orgId especificado no existe en las organizaciones registradas.',
         HttpStatus.BAD_REQUEST,
       );
     }
 
     const models = await this.modelModel
-      .find({ owner })
+      .find({ orgId })
       .populate('modelType', 'name')
       .lean();
 

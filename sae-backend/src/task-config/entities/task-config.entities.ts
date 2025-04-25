@@ -27,7 +27,7 @@ export class TaskConfig {
   modelIA: string; 
 
   @Prop({ required: true, unique: true })
-  taskIdClassroom: string; 
+  idTaskGithubClassroom: string; 
 
 }
 

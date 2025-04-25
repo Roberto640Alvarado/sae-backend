@@ -12,7 +12,7 @@ export class Feedback {
   email: string;
 
   @Prop({ required: true })
-  task: string;
+  idTaskGithubClassroom: string;
 
   @Prop({ required: true })
   feedback: string;

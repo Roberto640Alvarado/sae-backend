@@ -8,7 +8,7 @@ export interface GenerateFeedbackParams {
     modelIA: string;
     status: string;
     email: string;
-    task: string;
+    idTaskGithubClassroom: string;
     language: string;
     subject: string;
     studentLevel: string;

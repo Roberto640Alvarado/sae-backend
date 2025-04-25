@@ -18,11 +18,10 @@ import {
     @Post('first-login')
     async handleFirstLogin(
       @Headers('authorization') authHeader: string,
-      @Query('username') username: string,
     ) {
-      if (!authHeader || !username) {
+      if (!authHeader) {
         throw new HttpException(
-          'Token de autorización y username son requeridos.',
+          'Token de autorización es requerido.',
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -30,7 +29,7 @@ import {
       const token = authHeader.replace('Bearer ', '');
   
       try {
-        const result = await this.userService.handleFirstLoginOrUpdate(token, username);
+        const result = await this.userService.handleFirstLoginOrUpdate(token);
   
         return {
             statusCode: HttpStatus.OK,

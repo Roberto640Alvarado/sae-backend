@@ -20,25 +20,29 @@ export class UserService {
     };
   }
 
-  //Obtener el nombre real del usuario desde GitHub
-  async getGitHubName(token: string): Promise<string> {
+  //Obtener el username y el nombre real del usuario desde GitHub
+  async getGitHubUsernameAndName(
+    token: string,
+  ): Promise<{ username: string; name: string }> {
     try {
       const response = await axios.get('https://api.github.com/user', {
         headers: this.buildHeaders(token),
       });
 
+      const username = response.data.login;
       const name = response.data.name;
-      if (!name) {
-        throw new Error('El usuario no tiene un nombre configurado en GitHub.');
+
+      if (!username || !name) {
+        throw new Error('No se pudo obtener el nombre o username del usuario.');
       }
 
-      return name;
+      return { username, name };
     } catch (error) {
       this.logger.error(
-        'Error obteniendo el nombre del usuario desde GitHub:',
+        'Error obteniendo datos del usuario desde GitHub:',
         error.message,
       );
-      throw new Error('No se pudo obtener el nombre del usuario.');
+      throw new Error('No se pudo obtener el nombre y username del usuario.');
     }
   }
 
@@ -93,11 +97,10 @@ export class UserService {
   //Verifica lo de roles y guarda en la BD
   async handleFirstLoginOrUpdate(
     token: string,
-    username: string,
   ): Promise<any> {
     const email = await this.getGitHubPrimaryEmail(token);
     const existingUser = await this.userModel.findOne({ email });
-    const name = await this.getGitHubName(token);
+    const { username, name } = await this.getGitHubUsernameAndName(token);
     const githubOrgs = await this.getGitHubOrganizations(token, username);
 
     const updatedOrganizations: {

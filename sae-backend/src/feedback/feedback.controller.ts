@@ -130,10 +130,10 @@ export class FeedbackController {
   @Patch('update')
   async updateFeedbackByQuery(
     @Query('email') email: string,
-    @Query('idTask') task: string,
+    @Query('idTaskGithubClassroom') idTaskGithubClassroom: string,
     @Body('feedback') feedback: string,
   ) {
-    if (!email || !task || !feedback) {
+    if (!email || !idTaskGithubClassroom || !feedback) {
       throw new HttpException(
         'Los campos email, task y feedback son requeridos.',
         HttpStatus.BAD_REQUEST,
@@ -141,7 +141,7 @@ export class FeedbackController {
     }
 
     const updated = await this.feedbackModel.findOneAndUpdate(
-      { email, task },
+      { email, idTaskGithubClassroom },
       { feedback },
       { new: true },
     );

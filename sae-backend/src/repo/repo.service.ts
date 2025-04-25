@@ -308,7 +308,7 @@ export class RepoService {
     pullNumber: number,
     feedback: string,
   ): Promise<any> {
-    const feedbackMessage = `📌 **Nuevo Feedback Generado:**\n\n**Fecha y Hora:** ${new Date().toLocaleString()}\n\n${feedback}`;
+    const feedbackMessage = `📌 **Nueva Retroalimentación Generada:**\n\n**Fecha y Hora:** ${new Date().toLocaleString()}\n\n${feedback}`;
 
     const res = await axios.post(
       `https://api.github.com/repos/${owner}/${repo}/issues/${pullNumber}/comments`,

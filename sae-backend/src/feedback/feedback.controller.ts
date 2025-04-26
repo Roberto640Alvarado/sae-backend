@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Delete,
   Patch,
   Get,
   Query,
@@ -22,7 +23,6 @@ export class FeedbackController {
 
     @InjectModel(Feedback.name)
     private feedbackModel: Model<FeedbackDocument>,
-
   ) {}
 
   //Obtener el estado del feedback por nombre de repositorio
@@ -114,7 +114,10 @@ export class FeedbackController {
       );
     }
 
-    const feedbackData = await this.feedbackModel.findOne({ email, idTaskGithubClassroom });
+    const feedbackData = await this.feedbackModel.findOne({
+      email,
+      idTaskGithubClassroom,
+    });
 
     if (!feedbackData) {
       throw new HttpException(
@@ -157,6 +160,38 @@ export class FeedbackController {
       statusCode: HttpStatus.OK,
       message: 'Feedback actualizado correctamente.',
       data: updated,
+    };
+  }
+
+  //Eliminar el feedback
+  @Delete('delete')
+  async deleteFeedbackByQuery(
+    @Query('email') email: string,
+    @Query('idTaskGithubClassroom') idTaskGithubClassroom: string,
+  ) {
+    if (!email || !idTaskGithubClassroom) {
+      throw new HttpException(
+        'Los campos email y idTaskGithubClassroom son requeridos.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const deleted = await this.feedbackModel.findOneAndDelete({
+      email,
+      idTaskGithubClassroom,
+    });
+
+    if (!deleted) {
+      throw new HttpException(
+        'No se encontró retroalimentación con ese email y tarea.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Feedback eliminado correctamente.',
+      data: deleted,
     };
   }
 }

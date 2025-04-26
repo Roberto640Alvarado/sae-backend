@@ -23,7 +23,7 @@ export class ModelService {
     name: string;
     version: string;
     apiKey: string;
-    modelType: string; 
+    modelType: string;
     ownerEmail?: string;
     orgId?: string;
   }) {
@@ -45,7 +45,9 @@ export class ModelService {
     }
 
     if (!ownerEmail && !orgId) {
-      throw new Error('Debes definir un ownerEmail (personal) o un orgId (organizacional).');
+      throw new Error(
+        'Debes definir un ownerEmail (personal) o un orgId (organizacional).',
+      );
     }
 
     //Validar existencia de ownerEmail o de orgId
@@ -57,7 +59,9 @@ export class ModelService {
     }
 
     if (orgId) {
-      const orgExists = await this.userModel.exists({ 'organizations.orgId': orgId });
+      const orgExists = await this.userModel.exists({
+        'organizations.orgId': orgId,
+      });
       if (!orgExists) {
         throw new Error('El orgId especificado no existe.');
       }
@@ -70,7 +74,7 @@ export class ModelService {
       modelType,
       ownerEmail: ownerEmail || undefined,
       orgId: orgId || undefined,
-      allowedTeachers: [], 
+      allowedTeachers: [],
     });
 
     return createdModel;
@@ -79,11 +83,11 @@ export class ModelService {
   //Eliminar modelo por ID
   async deleteModel(modelId: string) {
     const deleted = await this.modelModel.findByIdAndDelete(modelId);
-  
+
     if (!deleted) {
       throw new Error('No se encontró el modelo para eliminar.');
     }
-  
+
     return deleted;
   }
 
@@ -94,19 +98,28 @@ export class ModelService {
     if (!model) {
       throw new Error('El modelo especificado no existe.');
     }
-  
+
+    //Verificar si es un modelo personal
+    if (model.ownerEmail) {
+      throw new Error(
+        'Este modelo es de acceso personal, no puede asignar profesores.',
+      );
+    }
+
     //Verificar que el usuario exista y sea Teacher en esa organización
     const user = await this.userModel.findOne({
       email,
-      'organizations': {
+      organizations: {
         $elemMatch: { orgId, role: 'Teacher' },
       },
     });
-  
+
     if (!user) {
-      throw new Error('El usuario no existe o no tiene rol de Teacher en la organización.');
+      throw new Error(
+        'El usuario no existe o no tiene rol de Teacher en la organización.',
+      );
     }
-  
+
     //Agregar el email si no está repetido
     if (!model.allowedTeachers.includes(email)) {
       model.allowedTeachers.push(email);
@@ -114,7 +127,7 @@ export class ModelService {
     } else {
       throw new Error('El usuario ya tiene acceso al modelo.');
     }
-  
+
     return model;
   }
 
@@ -124,26 +137,25 @@ export class ModelService {
       .find({ ownerEmail: email })
       .populate('modelType', 'name')
       .lean();
-  
+
     //Traer modelos organizacionales donde esté en allowedEmails
     const organizationalModels = await this.modelModel
       .find({ allowedTeachers: email })
       .populate('modelType', 'name')
       .lean();
-  
+
     //Añadir un campo para indicar el tipo de modelo
     const labeledPersonalModels = personalModels.map((model) => ({
       ...model,
       accessType: 'Personal',
     }));
-  
+
     const labeledOrganizationalModels = organizationalModels.map((model) => ({
       ...model,
       accessType: 'Organizacional',
     }));
-  
+
     //Combinar ambos resultados
     return [...labeledPersonalModels, ...labeledOrganizationalModels];
   }
-  
 }

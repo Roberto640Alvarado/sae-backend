@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Delete,
   Body,
   Query,
@@ -14,10 +15,13 @@ import { Model } from 'mongoose';
 import { ModelType, ModelTypeDocument } from './entities/model-type.entity';
 import { Model as ModelEntity, ModelDocument } from './entities/model.entity';
 import { User, UserDocument } from '../user/entities/user.entity';
+import { ModelService } from './model-type.service';
 
 @Controller('model-types')
 export class ModelTypeController {
   constructor(
+    private readonly modelService: ModelService,
+
     @InjectModel(ModelType.name)
     private readonly modelTypeModel: Model<ModelTypeDocument>,
 
@@ -44,148 +48,100 @@ export class ModelTypeController {
 
   //Crear un modelo de IA
   @Post('create')
-  async createModel(@Body() body: Partial<ModelEntity>) {
-    const { name, version, apiKey, modelType, orgId, ownerEmail } = body;
+  async createModel(@Body() body: any) {
+    try {
+      const createdModel = await this.modelService.createModel(body);
 
-    if (!name || !version || !apiKey || !modelType) {
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Modelo creado exitosamente.',
+        data: createdModel,
+      };
+    } catch (error) {
       throw new HttpException(
-        'Los campos name, version, apiKey y modelType son requeridos.',
+        error.message || 'Error creando el modelo.',
         HttpStatus.BAD_REQUEST,
       );
     }
-
-    //Validar que el tipo de modelo exista
-    const modelTypeExists = await this.modelTypeModel.findById(modelType);
-    if (!modelTypeExists) {
-      throw new HttpException(
-        'El tipo de modelo especificado no existe.',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    //Validar que venga al menos orgId o ownerEmail
-    if (!orgId && !ownerEmail) {
-      throw new HttpException(
-        'Debe proporcionar orgId (para modelos compartidos) o ownerEmail (para modelos personales).',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    let isShared = true;
-
-    //Validar existencia de la organización o el usuario, según el caso
-    if (orgId) {
-      const orgExists = await this.userModel.exists({
-        'organizations.orgId': orgId,
-      });
-
-      if (!orgExists) {
-        throw new HttpException(
-          'El orgId especificado no existe en las organizaciones registradas.',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      isShared = true;
-    }
-
-    if (ownerEmail) {
-      const userExists = await this.userModel.findOne({ email: ownerEmail });
-      if (!userExists) {
-        throw new HttpException(
-          'El usuario con ese email no está registrado.',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      isShared = false;
-    }
-
-    //Crear modelo
-    const model = await this.modelModel.create({
-      name,
-      version,
-      apiKey,
-      modelType,
-      orgId: isShared ? orgId : undefined,
-      ownerEmail: !isShared ? ownerEmail : undefined,
-      isShared,
-    });
-
-    return {
-      message: 'Modelo creado exitosamente.',
-      data: model,
-    };
   }
 
-  //Eliminar modelo por ID
+  //Eliminar un modelo de IA
   @Delete('delete/:id')
   async deleteModel(@Param('id') id: string) {
-    const deleted = await this.modelModel.findByIdAndDelete(id);
-    if (!deleted) {
-      throw new HttpException('Modelo no encontrado.', HttpStatus.NOT_FOUND);
-    }
+    try {
+      const deletedModel = await this.modelService.deleteModel(id);
 
-    return { message: 'Modelo eliminado correctamente.', id };
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Modelo eliminado exitosamente.',
+        data: deletedModel,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error eliminando el modelo.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
-  //Obtener todos los modelos de una organización o de un usuario
-  @Get('search')
-  async getModelsByOwnerOrUser(
-    @Query('orgId') orgId?: string,
-    @Query('ownerEmail') ownerEmail?: string,
+  //Agregar un Teacher al modelo
+  @Patch('add-teacher')
+  async addTeacherToModel(
+    @Query('modelId') modelId: string,
+    @Query('email') email: string,
+    @Query('orgId') orgId: string,
   ) {
-    if (!orgId && !ownerEmail) {
+    if (!modelId || !email || !orgId) {
       throw new HttpException(
-        'Debes proporcionar orgId o ownerEmail como parámetro.',
+        'Se requieren modelId, email y orgId.',
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    let models: ModelDocument[] = [];
-    if (orgId) {
-      //Validar que el orgId exista
-      const orgExists = await this.userModel.exists({
-        'organizations.orgId': orgId,
-      });
+    try {
+      const updatedModel = await this.modelService.addTeacherToModel(
+        modelId,
+        email,
+        orgId,
+      );
 
-      if (!orgExists) {
-        throw new HttpException(
-          'El orgId especificado no existe en las organizaciones registradas.',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      //Buscar modelos compartidos para esa organización
-      models = await this.modelModel
-        .find({ orgId })
-        .populate('modelType', 'name')
-        .lean();
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Teacher agregado exitosamente al modelo.',
+        data: updatedModel,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error al agregar el Teacher al modelo.',
+        HttpStatus.BAD_REQUEST,
+      );
     }
+  }
 
-    if (ownerEmail) {
-      //Validar que el usuario exista
-      const userExists = await this.userModel.exists({ email: ownerEmail });
+  //Obtener todos los modelos que puede usar un Teacher
+@Get('models-for-teacher')
+async getModelsForTeacher(@Query('email') email: string) {
+  if (!email) {
+    throw new HttpException(
+      'Se requiere el parámetro email.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
 
-      if (!userExists) {
-        throw new HttpException(
-          'El ownerEmail especificado no existe en los usuarios registrados.',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      //Buscar modelos personales para ese usuario
-      const userModels = await this.modelModel
-        .find({ ownerEmail })
-        .populate('modelType', 'name')
-        .lean();
-
-      models = models.concat(userModels);
-    }
+  try {
+    const models = await this.modelService.getModelsForTeacher(email);
 
     return {
+      statusCode: HttpStatus.OK,
       total: models.length,
       models,
     };
+  } catch (error) {
+    throw new HttpException(
+      error.message || 'Error al obtener los modelos para el Teacher.',
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
   }
+}
+
 }

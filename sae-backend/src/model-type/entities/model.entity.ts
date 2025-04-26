@@ -12,19 +12,20 @@ export class Model {
   version: string;
 
   @Prop({ required: true })
-  apiKey: string; 
+  apiKey: string;
 
   @Prop({ type: Types.ObjectId, ref: 'ModelType', required: true })
   modelType: Types.ObjectId;
 
-  @Prop({ required: false }) //Si es personal
+  @Prop({ type: String, required: false }) //Personal
   ownerEmail?: string;
 
-  @Prop({ required: false }) //Si es compartido
+  @Prop({ type: String, required: false }) //Organizacional
   orgId?: string;
 
-  @Prop({ default: true })
-  isShared: boolean;
+  @Prop({ type: [String], default: [] }) //Teachers específicos
+  allowedTeachers: string[];
 }
 
 export const ModelSchema = SchemaFactory.createForClass(Model);
+

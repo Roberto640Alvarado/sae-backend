@@ -40,7 +40,7 @@ export class FeedbackController {
     if (!feedback) {
       return {
         repo,
-        status: 'pending',
+        status: 'Pendiente',
         message: 'Este repositorio aún no tiene feedback generado.',
       };
     }

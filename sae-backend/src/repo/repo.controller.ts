@@ -330,7 +330,7 @@ async getClassrooms(
 
       await this.feedbackModel.findOneAndUpdate(
         { repo },
-        { $set: { status: 'sent' } },
+        { $set: { status: 'Enviado' } },
       );
 
       return res.json({

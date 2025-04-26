@@ -4,6 +4,7 @@ import { ModelType, ModelTypeSchema } from './entities/model-type.entity';
 import { Model, ModelSchema } from './entities/model.entity';
 import { User, UserSchema } from '../user/entities/user.entity';
 import { ModelTypeController } from './model-type.controller';
+import { ModelService } from './model-type.service';
 
 @Module({
   imports: [
@@ -15,5 +16,6 @@ import { ModelTypeController } from './model-type.controller';
     ]),
   ],
   controllers: [ModelTypeController],
+  providers: [ModelService],
 })
 export class ModelTypeModule {}

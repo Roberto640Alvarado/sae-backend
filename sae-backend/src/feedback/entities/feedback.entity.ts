@@ -25,10 +25,10 @@ export class Feedback {
 
   @Prop({
     required: true,
-    enum: ['pending', 'generated', 'sent'],
-    default: 'pending',
+    enum: ['Pendiente', 'Generado', 'Enviado'],
+    default: 'Pendiente',
   })
-  status: 'pending' | 'generated' | 'sent';
+  status: 'Pendiente' | 'Generado' | 'Enviado';
 
   @Prop()
   modelIA?: string;

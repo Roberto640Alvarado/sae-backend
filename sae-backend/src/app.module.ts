@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RepoModule } from './repo/repo.module';
 import { FeedbackModule } from './feedback/feedback.module';
-import { TeacherModule } from './teacher/teacher.module';
 import { ModelTypeModule } from './model-type/model-type.module';
 import { TaskConfigModule } from './task-config/task-config.module';
 import { UserModule } from './user/user.module';
@@ -22,7 +21,6 @@ import { MongooseModule } from '@nestjs/mongoose';
     }),
     RepoModule,
     FeedbackModule,
-    TeacherModule,
     ModelTypeModule,
     TaskConfigModule,
     JenkinsResultModule,

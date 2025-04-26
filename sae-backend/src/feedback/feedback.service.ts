@@ -43,7 +43,6 @@ export class FeedbackService {
   }) {
     await this.feedbackModel.create({
       ...data,
-      status: 'generated',
     });
     this.logger.log(`Feedback guardado en MongoDB para ${data.repo}`);
   }
@@ -74,7 +73,7 @@ export class FeedbackService {
       const feedback =
         response?.choices?.[0]?.message?.content ||
         'No se pudo generar feedback.';
-      await this.saveFeedbackToDB({ ...params, feedback, status: 'generated' });
+      await this.saveFeedbackToDB({ ...params, feedback, status: 'Generado', modelIA: 'Deepseek' });
 
       return feedback;
     } catch (error) {
@@ -114,7 +113,7 @@ export class FeedbackService {
       const feedback =
         response?.choices?.[0]?.message?.content ||
         'No se pudo generar feedback.';
-      await this.saveFeedbackToDB({ ...params, feedback, status: 'generated'  });
+      await this.saveFeedbackToDB({ ...params, feedback, status: 'Generado', modelIA: 'OpenAI' });
 
       return feedback;
     } catch (error) {
@@ -153,7 +152,7 @@ export class FeedbackService {
       const result = await model.generateContent(prompt);
       const feedback =
         result?.response?.text() || 'No se pudo generar feedback.';
-      await this.saveFeedbackToDB({ ...params, feedback, status: 'generated'  });
+      await this.saveFeedbackToDB({ ...params, feedback, status: 'Generado', modelIA: 'Gemini' });
 
       return feedback;
     } catch (error) {

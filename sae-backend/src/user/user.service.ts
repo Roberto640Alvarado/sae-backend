@@ -207,4 +207,19 @@ export class UserService {
 
     return user.email;
   }
+
+  //Obtener info de user por Correo
+  async getUserByEmail(email: string): Promise<UserDocument | null> {
+    if (!email) {
+      return null;
+    }
+
+    const user = await this.userModel.findOne({ email });
+
+    if (!user) {
+      return null;
+    }
+
+    return user;
+  }
 }

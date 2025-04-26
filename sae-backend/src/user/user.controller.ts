@@ -66,6 +66,27 @@ import {
     };
   }
 
+  //Traer info de un usuario por su correo
+  @Get('teacher/:email')
+  async getUserByEmail(@Param('email') email: string) {
+    if (!email) {
+      throw new HttpException('El correo es requerido.', HttpStatus.BAD_REQUEST);
+    }
+
+    const user = await this.userService.getUserByEmail(email);
+
+    if (!user) {
+      throw new HttpException('Usuario no encontrado.', HttpStatus.NOT_FOUND);
+    }
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Usuario encontrado exitosamente.',
+      user,
+    };
+  }
+
+  //Traer el email de un usuario por su githubUsername
   @Get('students/:login/email')
   async getEmailByGithubUsername(@Param('login') login: string) {
     if (!login) {

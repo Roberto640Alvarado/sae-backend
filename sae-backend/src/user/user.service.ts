@@ -193,6 +193,7 @@ export class UserService {
         email,
         githubUsername: username,
         name,
+        githubAccessToken: token,
         isRoot: false,
         organizations: updatedOrganizations,
       });
@@ -202,6 +203,7 @@ export class UserService {
         email: newUser.email,
         name: newUser.name,
         githubUsername: newUser.githubUsername,
+        githubAccessToken: newUser.githubAccessToken,
         organizations: newUser.organizations,
         isRoot: newUser.isRoot,
       };

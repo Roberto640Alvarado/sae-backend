@@ -94,89 +94,6 @@ export class UserService {
     return orgsWithRoles;
   }
 
-  //Verifica lo de roles y guarda en la BD
-  async handleFirstLoginOrUpdate(
-    token: string,
-  ): Promise<any> {
-    const email = await this.getGitHubPrimaryEmail(token);
-    const existingUser = await this.userModel.findOne({ email });
-    const { username, name } = await this.getGitHubUsernameAndName(token);
-    const githubOrgs = await this.getGitHubOrganizations(token, username);
-
-    const updatedOrganizations: {
-      orgId: string;
-      orgName: string;
-      role: 'Student' | 'Teacher' | 'ORG_Admin';
-    }[] = [];
-
-    for (const org of githubOrgs) {
-      const alreadyHasORG_Admin = existingUser?.organizations?.some(
-        (o) => o.orgId === org.orgId && o.role === 'ORG_Admin',
-      );
-
-      const existingOrgInUser = existingUser?.organizations?.find(
-        (o) => o.orgId === org.orgId,
-      );
-
-      //Si ya tiene ORG_Admin en esa org, conservarlo
-      if (alreadyHasORG_Admin && existingOrgInUser) {
-        updatedOrganizations.push(existingOrgInUser);
-        continue;
-      }
-
-      const orgUsers = await this.userModel.find({
-        'organizations.orgId': org.orgId,
-      });
-
-      let internalRole: 'Student' | 'Teacher' | 'ORG_Admin' = 'Student';
-
-      if (org.role === 'admin') {
-        internalRole = orgUsers.length === 0 ? 'ORG_Admin' : 'Teacher';
-      }
-
-      updatedOrganizations.push({
-        orgId: org.orgId,
-        orgName: org.orgName,
-        role: internalRole,
-      });
-    }
-
-    //Crear o actualizar el usuario
-    if (!existingUser) {
-      const newUser = await this.userModel.create({
-        email,
-        name,
-        githubUsername: username,
-        githubAccessToken: token,
-        isRoot: false,
-        organizations: updatedOrganizations,
-      });
-
-      return {
-        message: 'Usuario creado exitosamente',
-        email: newUser.email,
-        name: newUser.name,
-        githubUsername: newUser.githubUsername,
-        organizations: newUser.organizations,
-        isRoot: newUser.isRoot,
-      };
-    } else {
-      existingUser.githubUsername = username;
-      existingUser.githubAccessToken = token;
-      existingUser.organizations = updatedOrganizations;
-      await existingUser.save();
-
-      return {
-        message: 'Usuario actualizado exitosamente',
-        email: existingUser.email,
-        name: existingUser.name,
-        githubUsername: existingUser.githubUsername,
-        organizations: existingUser.organizations,
-        isRoot: existingUser.isRoot,
-      };
-    }
-  }
-
   //Buscar profesores por ID de organización
   async findTeachersByOrgId(orgId: string) {
     const teachers = await this.userModel.find({
@@ -222,4 +139,88 @@ export class UserService {
 
     return user;
   }
+
+  //Registro de usuario o actualización de datos en la base de datos
+  async handleFirstLoginOrUpdate(token: string): Promise<any> {
+    const email = await this.getGitHubPrimaryEmail(token);
+    const existingUser = await this.userModel.findOne({ email });
+    const { username, name } = await this.getGitHubUsernameAndName(token);
+    const githubOrgs = await this.getGitHubOrganizations(token, username);
+  
+    //Validar el rol del usuario en la organización
+    const determineRole = async (orgId: string, githubRole: string, previousRole?: 'Student' | 'Teacher' | 'ORG_Admin'): Promise<'Student' | 'Teacher' | 'ORG_Admin'> => {
+      if (githubRole === 'member') {
+        return 'Student';
+      }
+      if (githubRole === 'admin') {
+        if (previousRole === 'ORG_Admin') {
+          return 'ORG_Admin';
+        }
+        const orgAdminExists = await this.userModel.exists({
+          'organizations': { $elemMatch: { orgId, role: 'ORG_Admin' } }
+        });
+        return !orgAdminExists ? 'ORG_Admin' : 'Teacher';
+      }
+      return 'Student';
+    };
+  
+    const updatedOrganizations: {
+      orgId: string;
+      orgName: string;
+      role: 'Student' | 'Teacher' | 'ORG_Admin';
+    }[] = [];
+  
+    for (const githubOrg of githubOrgs) {
+      const existingOrg = existingUser?.organizations.find(
+        (o) => o.orgId === String(githubOrg.orgId)
+      );
+  
+      const roleInApp = await determineRole(
+        String(githubOrg.orgId),
+        githubOrg.role,
+        existingOrg?.role
+      );
+  
+      updatedOrganizations.push({
+        orgId: String(githubOrg.orgId),
+        orgName: githubOrg.orgName,
+        role: roleInApp,
+      });
+    }
+  
+    if (!existingUser) {
+      const newUser = await this.userModel.create({
+        email,
+        githubUsername: username,
+        name,
+        isRoot: false,
+        organizations: updatedOrganizations,
+      });
+  
+      return {
+        message: 'Usuario creado exitosamente',
+        email: newUser.email,
+        name: newUser.name,
+        githubUsername: newUser.githubUsername,
+        organizations: newUser.organizations,
+        isRoot: newUser.isRoot,
+      };
+    } else {
+      existingUser.githubUsername = username;
+      existingUser.githubAccessToken = token;
+      existingUser.name = name;
+      existingUser.organizations = updatedOrganizations;
+      await existingUser.save();
+  
+      return {
+        message: 'Usuario actualizado exitosamente',
+        email: existingUser.email,
+        name: existingUser.name,
+        githubUsername: existingUser.githubUsername,
+        organizations: existingUser.organizations,
+        isRoot: existingUser.isRoot,
+      };
+    }
+  }
+  
 }

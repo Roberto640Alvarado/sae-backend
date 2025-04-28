@@ -158,4 +158,14 @@ export class ModelService {
     //Combinar ambos resultados
     return [...labeledPersonalModels, ...labeledOrganizationalModels];
   }
+
+  //Filtrar modelos que tengan este orgId
+  async findModelsByOrgId(orgId: string) {
+    const models = await this.modelModel
+      .find({ orgId }) 
+      .populate('modelType', 'name') 
+      .lean();
+
+    return models;
+  }
 }

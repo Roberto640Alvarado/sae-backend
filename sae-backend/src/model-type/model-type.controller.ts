@@ -119,29 +119,55 @@ export class ModelTypeController {
   }
 
   //Obtener todos los modelos que puede usar un Teacher
-@Get('models-for-teacher')
-async getModelsForTeacher(@Query('email') email: string) {
-  if (!email) {
-    throw new HttpException(
-      'Se requiere el parámetro email.',
-      HttpStatus.BAD_REQUEST,
-    );
+  @Get('models-for-teacher')
+  async getModelsForTeacher(@Query('email') email: string) {
+    if (!email) {
+      throw new HttpException(
+        'Se requiere el parámetro email.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const models = await this.modelService.getModelsForTeacher(email);
+
+      return {
+        statusCode: HttpStatus.OK,
+        total: models.length,
+        models,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error al obtener los modelos para el Teacher.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
-  try {
-    const models = await this.modelService.getModelsForTeacher(email);
+  //Obtener los modelos de una organización
+  @Get('org-models')
+  async getModelsByOrg(@Query('orgId') orgId: string) {
+    if (!orgId) {
+      throw new HttpException(
+        'El campo "orgId" es requerido.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const models = await this.modelService.findModelsByOrgId(orgId);
+
+    if (!models.length) {
+      throw new HttpException(
+        'No se encontraron modelos para esta organización.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
     return {
       statusCode: HttpStatus.OK,
+      message: 'Modelos obtenidos correctamente.',
       total: models.length,
       models,
     };
-  } catch (error) {
-    throw new HttpException(
-      error.message || 'Error al obtener los modelos para el Teacher.',
-      HttpStatus.INTERNAL_SERVER_ERROR,
-    );
   }
-}
-
 }

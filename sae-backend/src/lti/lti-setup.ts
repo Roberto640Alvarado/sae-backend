@@ -4,7 +4,7 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-export const setupLti = async (expressApp: any) => {
+export const setupLti = async () => {
 
     await lti.setup(
         process.env.LTI_KEY,
@@ -41,7 +41,7 @@ export const setupLti = async (expressApp: any) => {
         return res.send(html);
       });
       
-      await lti.deploy({ serverless: true, app: expressApp });
+      await lti.deploy({ port: 3005 });
       console.log('🚀 LTI Deploy ejecutado');
       
       //Registra la plataforma LTI

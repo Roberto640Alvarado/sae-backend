@@ -168,4 +168,22 @@ export class ModelService {
 
     return models;
   }
+
+  //Eliminar un profesor de un modelo
+  async removeTeacherFromModel(modelId: string, email: string, orgId: string) {
+    const model = await this.modelModel.findOne({ _id: modelId, orgId });
+  
+    if (!model) {
+      throw new Error('Modelo no encontrado para la organización especificada.');
+    }
+  
+    if (!model.allowedTeachers.includes(email)) {
+      throw new Error('El teacher no está asignado a este modelo.');
+    }
+  
+    //Remover el email del array
+    model.allowedTeachers = model.allowedTeachers.filter(e => e !== email);
+    return model.save();
+  }
+  
 }

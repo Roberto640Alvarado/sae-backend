@@ -118,6 +118,40 @@ export class ModelTypeController {
     }
   }
 
+  //Eliminar un Teacher del modelo
+  @Patch('remove-teacher')
+  async removeTeacherFromModel(
+    @Query('modelId') modelId: string,
+    @Query('email') email: string,
+    @Query('orgId') orgId: string,
+  ) {
+    if (!modelId || !email || !orgId) {
+      throw new HttpException(
+        'Se requieren modelId, email y orgId.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const updatedModel = await this.modelService.removeTeacherFromModel(
+        modelId,
+        email,
+        orgId,
+      );
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Teacher eliminado exitosamente del modelo.',
+        data: updatedModel,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error al eliminar el Teacher del modelo.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
   //Obtener todos los modelos que puede usar un Teacher
   @Get('models-for-teacher')
   async getModelsForTeacher(@Query('email') email: string) {

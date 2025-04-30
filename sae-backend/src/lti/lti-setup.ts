@@ -58,5 +58,11 @@ export const setupLti = async (expressApp: any) => {
       });
       
       console.log('✅ Plataforma LTI registrada');
+
+      expressApp._router.stack.forEach((r) => {
+        if (r.route && r.route.path) {
+          console.log('🔍 Ruta registrada:', r.route.path);
+        }
+      });
       
 };

@@ -4,18 +4,15 @@ const lti = require('ltijs').Provider;
 @Injectable()
 export class LtiService {
   async setupLti(expressApp: any) {
-    await lti.setup(
-      process.env.LTI_KEY,
-      { url: process.env.MONGO_URI },
-      {
-        appRoute: '/',
-        loginRoute: '/login',
-        cookies: {
-          secure: true,
-          sameSite: 'None',
-        },
-      },
-    );
+    await lti.setup(process.env.LTI_KEY,
+        { url: process.env.MONGO_URI },
+        {
+          appRoute: '/',
+          loginRoute: '/login',
+          cookies: { secure: false, sameSite: 'None' },
+          devMode: true
+        }
+      )
 
     await lti.deploy({ serverless: true, server: expressApp });
 

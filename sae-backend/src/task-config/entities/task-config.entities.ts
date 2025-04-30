@@ -24,11 +24,13 @@ export class TaskConfig {
   constraints: string;
 
   @Prop({ required: true })
-  modelIA: string; 
+  modelIA: string;
+
+  @Prop({ type: String, required: false })
+  providerNameIA?: string;
 
   @Prop({ required: true, unique: true })
-  idTaskGithubClassroom: string; 
-
+  idTaskGithubClassroom: string;
 }
 
 export const TaskConfigSchema = SchemaFactory.createForClass(TaskConfig);

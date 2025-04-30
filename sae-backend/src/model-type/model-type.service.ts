@@ -185,5 +185,15 @@ export class ModelService {
     model.allowedTeachers = model.allowedTeachers.filter(e => e !== email);
     return model.save();
   }
+
+  //Obtener la key de API por ID de modelo
+  async getApiKeyByModelId(modelId: string): Promise<string> {
+    const model = await this.modelModel.findById(modelId).select('apiKey');
+    if (!model) {
+      throw new Error('Modelo no encontrado');
+    }
+    return model.apiKey;
+  }
+  
   
 }

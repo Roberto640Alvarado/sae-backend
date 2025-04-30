@@ -204,4 +204,22 @@ export class ModelTypeController {
       models,
     };
   }
+
+  //Obtener la key de un modelo por su ID
+  @Get('apikey/:modelId')
+  async getApiKey(@Param('modelId') modelId: string) {
+    try {
+      const apiKey = await this.modelService.getApiKeyByModelId(modelId);
+      return {
+        statusCode: 200,
+        message: 'API Key obtenida correctamente',
+        data: apiKey,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error al obtener la API Key.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+  }
 }

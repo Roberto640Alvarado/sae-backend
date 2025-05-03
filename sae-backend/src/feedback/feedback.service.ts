@@ -4,6 +4,10 @@ import { OpenAI } from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Model } from 'mongoose';
 import { Feedback, FeedbackDocument } from './entities/feedback.entity';
+import {
+  Model as AIModel,
+  ModelDocument,
+} from '../model-type/entities/model.entity';
 import { buildFeedbackPrompt } from '../shared/prompts/feedback-prompt.template';
 import { GenerateFeedbackParams } from '../shared/dto/generate-feedback.dto';
 
@@ -11,23 +15,12 @@ import { GenerateFeedbackParams } from '../shared/dto/generate-feedback.dto';
 export class FeedbackService {
   private readonly logger = new Logger(FeedbackService.name);
 
-  //Cliente de deepseek
-  private readonly deepseek = new OpenAI({
-    baseURL: 'https://api.deepseek.com/v1',
-    apiKey: process.env.DEEPSEEK_API_KEY,
-  });
-
-  //Cliennte de OpenAI
-  private readonly openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-
-  //Cliente de Gemini
-  private readonly gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
   constructor(
     @InjectModel(Feedback.name)
     private feedbackModel: Model<FeedbackDocument>,
+
+    @InjectModel(AIModel.name)
+    private modelModel: Model<ModelDocument>,
   ) {}
 
   // Método para guardar el feedback en MongoDB
@@ -61,11 +54,19 @@ export class FeedbackService {
     });
 
     try {
-      const response = await this.deepseek.chat.completions.create({
+      const model = await this.modelModel.findById(params.modelId);
+      if (!model) {
+        throw new Error('Modelo de IA no encontrado.');
+      }
+
+      const deepseek = new OpenAI({
+        apiKey: model.apiKey,
+        baseURL: 'https://api.deepseek.com',
+      });
+
+      const response = await deepseek.chat.completions.create({
         model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: prompt },
-        ],
+        messages: [{ role: 'system', content: prompt }],
         temperature: 1,
         top_p: 0.95,
       });
@@ -73,7 +74,12 @@ export class FeedbackService {
       const feedback =
         response?.choices?.[0]?.message?.content ||
         'No se pudo generar feedback.';
-      await this.saveFeedbackToDB({ ...params, feedback, status: 'Generado', modelIA: 'Deepseek' });
+      await this.saveFeedbackToDB({
+        ...params,
+        feedback,
+        status: 'Generado',
+        modelIA: 'Deepseek',
+      });
 
       return feedback;
     } catch (error) {
@@ -96,7 +102,14 @@ export class FeedbackService {
     });
 
     try {
-      const response = await this.openai.chat.completions.create({
+      const model = await this.modelModel.findById(params.modelId);
+      if (!model) {
+        throw new Error('Modelo de IA no encontrado.');
+      }
+
+      const openai = new OpenAI({ apiKey: model.apiKey });
+
+      const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: prompt },
@@ -113,7 +126,12 @@ export class FeedbackService {
       const feedback =
         response?.choices?.[0]?.message?.content ||
         'No se pudo generar feedback.';
-      await this.saveFeedbackToDB({ ...params, feedback, status: 'Generado', modelIA: 'OpenAI' });
+      await this.saveFeedbackToDB({
+        ...params,
+        feedback,
+        status: 'Generado',
+        modelIA: 'OpenAI',
+      });
 
       return feedback;
     } catch (error) {
@@ -126,13 +144,35 @@ export class FeedbackService {
   async generateFeedbackWithGemini(
     params: GenerateFeedbackParams,
   ): Promise<string> {
-    const prompt = buildFeedbackPrompt(params.readme, params.code, {
-      language: params.language,
-      subject: params.subject,
-      studentLevel: params.studentLevel,
-      topics: params.topics,
-      constraints: params.constraints,
-      style: params.style,
+    const {
+      modelId,
+      repo,
+      readme,
+      code,
+      email,
+      gradeValue,
+      gradeTotal,
+      idTaskGithubClassroom,
+      language,
+      subject,
+      studentLevel,
+      topics,
+      constraints,
+      style,
+    } = params;
+
+    const model = await this.modelModel.findById(modelId);
+    if (!model) {
+      throw new Error('El modelo con ese ID no existe.');
+    }
+
+    const prompt = buildFeedbackPrompt(readme, code, {
+      language,
+      subject,
+      studentLevel,
+      topics,
+      constraints,
+      style,
     });
 
     try {
@@ -144,15 +184,22 @@ export class FeedbackService {
         response_mime_type: 'text/plain',
       };
 
-      const model = this.gemini.getGenerativeModel({
+      const geminiClient = new GoogleGenerativeAI(model.apiKey);
+
+      const genModel = geminiClient.getGenerativeModel({
         model: 'gemini-2.0-flash-lite',
         generationConfig,
       });
 
-      const result = await model.generateContent(prompt);
+      const result = await genModel.generateContent(prompt);
       const feedback =
         result?.response?.text() || 'No se pudo generar feedback.';
-      await this.saveFeedbackToDB({ ...params, feedback, status: 'Generado', modelIA: 'Gemini' });
+      await this.saveFeedbackToDB({
+        ...params,
+        feedback,
+        status: 'Generado',
+        modelIA: 'Gemini',
+      });
 
       return feedback;
     } catch (error) {

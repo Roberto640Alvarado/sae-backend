@@ -15,5 +15,6 @@ export interface GenerateFeedbackParams {
     topics: string;
     constraints: string;
     style: string;
+    modelId: string; 
   }
   

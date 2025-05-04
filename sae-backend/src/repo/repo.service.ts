@@ -5,7 +5,6 @@ import axios from 'axios';
 @Injectable()
 export class RepoService {
   private readonly logger = new Logger(RepoService.name);
-  private readonly ORG_NAME: string;
   private buildHeaders(token: string) {
     return {
       Authorization: `Bearer ${token}`,
@@ -14,9 +13,6 @@ export class RepoService {
     };
   }
 
-  constructor(private configService: ConfigService) {
-    this.ORG_NAME = this.configService.get<string>('ORG_NAME')!;
-  }
 
   //Obtener todos los classrooms filtrados por nombre de organización
   async fetchClassrooms(token: string, orgId: string): Promise<any[]> {
@@ -105,8 +101,8 @@ export class RepoService {
   }
 
   //Función para obtener el último run de un workflow
-  async fetchLatestWorkflowRun(token: string, repo: string) {
-    const url = `https://api.github.com/repos/${this.ORG_NAME}/${repo}/actions/runs`;
+  async fetchLatestWorkflowRun(token: string, repo: string, orgName: string) {
+    const url = `https://api.github.com/repos/${orgName}/${repo}/actions/runs`;
     const response = await axios.get(url, {
       headers: this.buildHeaders(token),
     });
@@ -116,8 +112,8 @@ export class RepoService {
   }
 
   //Función para obtener los detalles de un workflow
-  async fetchWorkflowJobs(token: string, repo: string, runId: number) {
-    const url = `https://api.github.com/repos/${this.ORG_NAME}/${repo}/actions/runs/${runId}/jobs`;
+  async fetchWorkflowJobs(token: string, repo: string, runId: number, orgName: string) {
+    const url = `https://api.github.com/repos/${orgName}/${repo}/actions/runs/${runId}/jobs`;
     const response = await axios.get(url, {
       headers: this.buildHeaders(token),
     });
@@ -126,9 +122,9 @@ export class RepoService {
   }
 
   //Función para obtener el contenido de un repositorio
-  async fetchRepoContent(token: string, repo: string, extension: string) {
+  async fetchRepoContent(token: string, repo: string, extension: string, orgName: string) {
     try {
-      const repoContentsUrl = `https://api.github.com/repos/${this.ORG_NAME}/${repo}/contents/`;
+      const repoContentsUrl = `https://api.github.com/repos/${orgName}/${repo}/contents/`;
       const contentsResponse = await axios.get(repoContentsUrl, {
         headers: this.buildHeaders(token),
       });
@@ -145,7 +141,7 @@ export class RepoService {
 
       const codeUrl = matchingFiles[0].download_url;
 
-      const readmeUrl = `https://api.github.com/repos/${this.ORG_NAME}/${repo}/contents/README.md`;
+      const readmeUrl = `https://api.github.com/repos/${orgName}/${repo}/contents/README.md`;
       const readmeResponse = await axios.get(readmeUrl, {
         headers: this.buildHeaders(token),
       });

@@ -207,6 +207,7 @@ async getClassrooms(
   async getLatestWorkflowDetails(
     @Param('repo') repo: string,
     @Headers('authorization') authHeader: string,
+    @Query('orgName') orgName: string,
   ) {
     if (!authHeader) {
       throw new NotFoundException(
@@ -218,6 +219,7 @@ async getClassrooms(
       const latestRun = await this.repoService.fetchLatestWorkflowRun(
         token,
         repo,
+        orgName,
       );
 
       if (!latestRun) {
@@ -230,6 +232,7 @@ async getClassrooms(
         token,
         repo,
         latestRun.id,
+        orgName,
       );
 
       if (!jobs.length) {
@@ -267,9 +270,12 @@ async getClassrooms(
         },
       };
     } catch (error) {
+    
       throw new InternalServerErrorException({
         error: 'Error obteniendo la información del workflow',
-        details: error.message,
+        message: error.message,
+        status: error.response?.status || 500,
+        githubError: error.response?.data || null,
       });
     }
   }
@@ -278,6 +284,7 @@ async getClassrooms(
   @Get(':repo/files')
   async getRepoContent(
     @Param('repo') repo: string,
+    @Query('orgName') orgName: string,
     @Query('ext') ext: string = '.cpp',
     @Headers('authorization') authHeader: string,
   ) {
@@ -288,7 +295,7 @@ async getClassrooms(
     }
     const token = authHeader.replace('Bearer ', '');
 
-    const content = await this.repoService.fetchRepoContent(token, repo, ext);
+    const content = await this.repoService.fetchRepoContent(token, repo, ext, orgName);
 
     if (!content) {
       throw new NotFoundException(

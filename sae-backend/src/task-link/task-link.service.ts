@@ -1,4 +1,9 @@
-import { Injectable, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { TaskLink, TaskLinkDocument } from './entities/TaskLink.entity';
@@ -27,15 +32,16 @@ export class TaskLinkService {
     return this.taskLinkModel.create({ ...data, createdAt: new Date() });
   }
 
-  async getInvitationUrlByMoodleTask(idTaskMoodle: string) {
-    const link = await this.taskLinkModel.findOne({ idTaskMoodle });
+  async getInvitationUrlByMoodleTask(idTaskMoodle: string, issuer: string) {
+    const link = await this.taskLinkModel.findOne({ idTaskMoodle, issuer });
 
     if (!link) {
       throw new NotFoundException(
-        'No se encontró el enlace para esta tarea de Moodle.',
+        'No se encontró el enlace para esta tarea de Moodle en esa plataforma.',
       );
     }
 
     return link.url_Invitation;
   }
+
 }

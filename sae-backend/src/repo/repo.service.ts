@@ -13,8 +13,7 @@ export class RepoService {
     };
   }
 
-
-  //Obtener todos los classrooms filtrados por nombre de organización
+  //Obtener todos los classrooms filtrados por id de organización
   async fetchClassrooms(token: string, orgId: string): Promise<any[]> {
     const url = 'https://api.github.com/classrooms';
 
@@ -38,6 +37,20 @@ export class RepoService {
       );
       throw error;
     }
+  }
+
+  //Verificar si una classroom específica pertenece a una organización
+  async isClassroomInOrg(
+    token: string,
+    orgId: string,
+    classroomId: string,
+  ): Promise<any> {
+    const classrooms = await this.fetchClassrooms(token, orgId);
+    const match = classrooms.find(
+      (classroom: any) => classroom.id.toString() === classroomId,
+    );
+
+    return match || null;
   }
 
   //Obtener todas las tareas de una classroom
@@ -112,7 +125,12 @@ export class RepoService {
   }
 
   //Función para obtener los detalles de un workflow
-  async fetchWorkflowJobs(token: string, repo: string, runId: number, orgName: string) {
+  async fetchWorkflowJobs(
+    token: string,
+    repo: string,
+    runId: number,
+    orgName: string,
+  ) {
     const url = `https://api.github.com/repos/${orgName}/${repo}/actions/runs/${runId}/jobs`;
     const response = await axios.get(url, {
       headers: this.buildHeaders(token),
@@ -122,7 +140,12 @@ export class RepoService {
   }
 
   //Función para obtener el contenido de un repositorio
-  async fetchRepoContent(token: string, repo: string, extension: string, orgName: string) {
+  async fetchRepoContent(
+    token: string,
+    repo: string,
+    extension: string,
+    orgName: string,
+  ) {
     try {
       const repoContentsUrl = `https://api.github.com/repos/${orgName}/${repo}/contents/`;
       const contentsResponse = await axios.get(repoContentsUrl, {
@@ -353,5 +376,4 @@ export class RepoService {
       throw error;
     }
   }
-  
 }

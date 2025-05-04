@@ -8,7 +8,6 @@ import {
     Get,
   } from '@nestjs/common';
   import { TaskLinkService } from './task-link.service';
-  import { TaskLink } from './entities/TaskLink.entity';
   
   @Controller('task-link')
   export class TaskLinkController {
@@ -23,21 +22,24 @@ import {
     };
   }
   
-    @Get('invitation-url')
-    async getInvitationUrl(@Query('idTaskMoodle') idTaskMoodle: string) {
-      if (!idTaskMoodle) {
-        throw new HttpException(
-          'El parámetro idTaskMoodle es requerido.',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-  
-      try {
-        const url = await this.taskLinkService.getInvitationUrlByMoodleTask(idTaskMoodle);
-        return { invitationUrl: url };
-      } catch (error) {
-        throw new HttpException(error.message, error.status || 500);
-      }
+  @Get('invitation-url')
+  async getInvitationUrl(
+    @Query('idTaskMoodle') idTaskMoodle: string,
+    @Query('issuer') issuer: string,
+  ) {
+    if (!idTaskMoodle || !issuer) {
+      throw new HttpException(
+        'Los parámetros idTaskMoodle y issuer son requeridos.',
+        HttpStatus.BAD_REQUEST,
+      );
     }
+  
+    try {
+      const url = await this.taskLinkService.getInvitationUrlByMoodleTask(idTaskMoodle, issuer);
+      return { invitationUrl: url };
+    } catch (error) {
+      throw new HttpException(error.message, error.status || 500);
+    }
+  }
   }
   

@@ -22,6 +22,9 @@ export class TaskLink {
 
   @Prop({ required: true }) 
   idCursoMoodle: string;
+
+  @Prop({ required: true })
+  issuer: string;
 }
 
 export const TaskLinkSchema = SchemaFactory.createForClass(TaskLink);

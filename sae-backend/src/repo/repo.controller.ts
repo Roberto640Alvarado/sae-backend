@@ -10,6 +10,7 @@ import {
   Body,
   Headers,
   HttpException,
+  BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { RepoService } from './repo.service';
@@ -39,43 +40,90 @@ export class RepoController {
   ) {}
 
   //Obtener todos los classrooms de la organización
-  //Obtener todos los classrooms de la organización
-@Get('classrooms')
-async getClassrooms(
-  @Headers('authorization') authHeader: string,
-  @Query('orgId') orgId: string,
-) {
-  if (!authHeader) {
-    throw new NotFoundException(
-      'Token no proporcionado en el header Authorization.',
-    );
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  try {
-    const classrooms = await this.repoService.fetchClassrooms(token, orgId);
-
-    if (!classrooms || !classrooms.length) {
+  @Get('classrooms')
+  async getClassrooms(
+    @Headers('authorization') authHeader: string,
+    @Query('orgId') orgId: string,
+  ) {
+    if (!authHeader) {
       throw new NotFoundException(
-        'No se encontraron classrooms en la organización.',
+        'Token no proporcionado en el header Authorization.',
       );
     }
 
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Classrooms obtenidos correctamente.',
-      data: classrooms,
-    };
-  } catch (error) {
-    if (error instanceof HttpException) {
-      throw error;
-    }
-    throw new InternalServerErrorException(
-      'Error al obtener los classrooms.',
-    );
-  }
-}
+    const token = authHeader.replace('Bearer ', '');
+    try {
+      const classrooms = await this.repoService.fetchClassrooms(token, orgId);
 
+      if (!classrooms || !classrooms.length) {
+        throw new NotFoundException(
+          'No se encontraron classrooms en la organización.',
+        );
+      }
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Classrooms obtenidos correctamente.',
+        data: classrooms,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Error al obtener los classrooms.',
+      );
+    }
+  }
+
+  //Verificar si una classroom específica pertenece a una organización
+  @Get('classrooms/validate')
+  async validateClassroomInOrg(
+    @Headers('authorization') authHeader: string,
+    @Query('orgId') orgId: string,
+    @Query('classroomId') classroomId: string,
+  ) {
+    if (!authHeader) {
+      throw new NotFoundException(
+        'Token no proporcionado en el header Authorization.',
+      );
+    }
+
+    if (!orgId || !classroomId) {
+      throw new BadRequestException(
+        'Se requieren orgId y classroomId como parámetros.',
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    try {
+      const classroom = await this.repoService.isClassroomInOrg(
+        token,
+        orgId,
+        classroomId,
+      );
+
+      if (!classroom) {
+        throw new NotFoundException(
+          'La classroom no pertenece a la organización.',
+        );
+      }
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'La classroom pertenece a la organización.',
+        data: classroom,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Error al validar la classroom en la organización.',
+      );
+    }
+  }
 
   //Obtener todas las tareas de una classroom
   @Get('classrooms/:id/assignments')
@@ -270,7 +318,6 @@ async getClassrooms(
         },
       };
     } catch (error) {
-    
       throw new InternalServerErrorException({
         error: 'Error obteniendo la información del workflow',
         message: error.message,
@@ -295,7 +342,12 @@ async getClassrooms(
     }
     const token = authHeader.replace('Bearer ', '');
 
-    const content = await this.repoService.fetchRepoContent(token, repo, ext, orgName);
+    const content = await this.repoService.fetchRepoContent(
+      token,
+      repo,
+      ext,
+      orgName,
+    );
 
     if (!content) {
       throw new NotFoundException(
@@ -351,5 +403,4 @@ async getClassrooms(
       });
     }
   }
-
 }

@@ -12,6 +12,9 @@ export class TaskLink {
   idClassroom: string;
 
   @Prop({ required: true }) 
+  orgId: string;
+
+  @Prop({ required: true }) 
   url_Invitation: string;
 
   @Prop({ required: true }) 

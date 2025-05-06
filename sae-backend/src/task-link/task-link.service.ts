@@ -7,25 +7,54 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { TaskLink, TaskLinkDocument } from './entities/TaskLink.entity';
+import { User, UserDocument } from '../user/entities/user.entity';
 
 @Injectable()
 export class TaskLinkService {
   constructor(
     @InjectModel(TaskLink.name)
     private taskLinkModel: Model<TaskLinkDocument>,
+
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
   ) {}
 
   async createLink(data: any): Promise<TaskLink> {
+    const {
+      idTaskGithubClassroom,
+      idTaskMoodle,
+      idCursoMoodle,
+      orgId,
+      emailOwner,
+    } = data;
+
+    //Verifica si ya existe una relación
     const exists = await this.taskLinkModel.findOne({
-      idTaskGithubClassroom: data.idTaskGithubClassroom,
-      idTaskMoodle: data.idTaskMoodle,
-      idCursoMoodle: data.idCursoMoodle,
+      idTaskGithubClassroom,
+      idTaskMoodle,
+      idCursoMoodle,
     });
 
     if (exists) {
       throw new HttpException(
         'Ya existe una relación con esos IDs.',
         HttpStatus.CONFLICT,
+      );
+    }
+
+    //Verifica si el emailOwner pertenece a la organización especificada
+    const user = await this.userModel.findOne({ email: emailOwner });
+
+    if (!user) {
+      throw new NotFoundException('No se encontró el usuario con ese correo.');
+    }
+
+    const isPartOfOrg = user.organizations?.some((org) => org.orgId === orgId);
+
+    if (!isPartOfOrg) {
+      throw new HttpException(
+        'El usuario no pertenece a la organización especificada.',
+        HttpStatus.FORBIDDEN,
       );
     }
 
@@ -43,5 +72,4 @@ export class TaskLinkService {
 
     return link.url_Invitation;
   }
-
 }

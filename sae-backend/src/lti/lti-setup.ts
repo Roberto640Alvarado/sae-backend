@@ -72,7 +72,7 @@ export const setupLti = async () => {
         return res.redirect(`https://sae2025.netlify.app?${query}`);
       }
     } else if (isStudent) {
-      //Existe usuario en SAE
+      //No Existe usuario en SAE
       const hasUser = await ltiService.hasUser(email);
       if (!hasUser) {
         console.log('Este usuario no existe en SAE');
@@ -89,19 +89,16 @@ export const setupLti = async () => {
         if (!hasTaskLink) {
           console.log('Esta tarea no ha sido enlazada a una tarea de github');
 
-          const html = `<h1>Hola ${name} esta tarea se encuentra en Configuracion</h1>
-          <p>Correo: ${email}</p>
-          <p>Curso: ${courseId}</p>
-          <p>ID de Tarea: ${assignmentId}</p>`;
-
-          return res.send(html);
+          return res.redirect("https://sae2025.netlify.app/NoDisponible"); //Redirigir a una pagina de error,
         }
         else{
           console.log('Esta tarea ya fue enlazada a una tarea de github');
           const hasFeedback = await ltiService.hasFeedback(email, assignmentId, issuer);
           if (hasFeedback){
             console.log('Este usuario ya tiene feedback en esta tarea');
-            const payload = { email, isMoodle, assignmentId };
+
+            const idTaskClassroom = await ltiService.getTaskLinkByMoodleTask(assignmentId, issuer); //Id de la tarea de classroom
+            const payload = { email, isMoodle, idTaskClassroom, name };
             const token = jwtService.generateToken(payload, '1h');
             const query = new URLSearchParams({ token }).toString();
             return res.redirect(`https://sae2025.netlify.app/feedback?${query}`);            
@@ -109,12 +106,11 @@ export const setupLti = async () => {
           else{
             console.log('Este usuario no tiene feedback en esta tarea');
             const urlInvitation = await ltiService.getInvitationUrlByMoodleTask(assignmentId,issuer); 
-            const html = `<h1>Hola ${name} tu enlace de invitacion es el siguiente:</h1>
-            <p> Si ya generaste tu repositorio, puedes ignorar este mensaje</p>
-            <p> Catedratico se encuentra realizando las retroalimentaciones respectivas</p>
-            <p>URL de invitación: ${urlInvitation}</p>`;
-            return res.send(html);     
-          }
+            const payload = { isMoodle, urlInvitation, name }; 
+            const token = jwtService.generateToken(payload, '1h');
+            const query = new URLSearchParams({ token }).toString();
+            return res.redirect(`https://sae2025.netlify.app/invitacion?${query}`); 
+          } 
 
         }
       }

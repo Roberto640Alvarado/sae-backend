@@ -48,40 +48,70 @@ export class LtiValidationService {
     return !!feedback; //true si existe, false si no
   }
 
-    //Verifica si existe un usuario basado en el email
-    async hasUser(email: string): Promise<boolean> {
-      const user = await this.userModel.findOne({
-        email,});
-        return !!user; //true si existe, false si no
+  //Devolver informacion de id de tarea de github basado en email + idTaskMoodle + issuer
+  async getIdTaskGithubByFeedback(
+    email: string,
+    idTaskMoodle: string,
+    issuer: string,
+  ): Promise<string> {
+    const taskLink = await this.taskLinkModel.findOne({
+      idTaskMoodle,
+      issuer,
+    });
+
+    if (!taskLink) {
+      throw new Error('No se encontró el enlace para esta tarea de Moodle.');
     }
 
-    //Verificar si una tarea de moodle ya fue enlazada a una tarea de github
-    async hasTaskLink(idTaskMoodle: string, issuer: string): Promise<boolean> {
-      const taskLink = await this.taskLinkModel.findOne({
-        idTaskMoodle,
-        issuer,
-      });
-        return !!taskLink; //true si existe, false si no
+    const idTaskGithub = taskLink.idTaskGithubClassroom;
+
+    const feedback = await this.feedbackModel.findOne({
+      email,
+      idTaskGithubClassroom: idTaskGithub,
+    });
+
+    if (!feedback) {
+      throw new Error('No se encontró el feedback para este usuario.');
     }
 
-    //Devolver url de invitación de una tarea de moodle
-    async getInvitationUrlByMoodleTask(
-      idTaskMoodle: string,
-      issuer: string,
-    ): Promise<string> {
-      const taskLink = await this.taskLinkModel.findOne({
-        idTaskMoodle,
-        issuer,
-      });
+    return feedback.idTaskGithubClassroom; //Devuelve la tarea enlazada
+  }
 
-      if (!taskLink) {
-        throw new Error('No se encontró el enlace para esta tarea de Moodle.');
-      }
+  //Verifica si existe un usuario basado en el email
+  async hasUser(email: string): Promise<boolean> {
+    const user = await this.userModel.findOne({
+      email,
+    });
+    return !!user; //true si existe, false si no
+  }
 
-      return taskLink.url_Invitation;
+  //Verificar si una tarea de moodle ya fue enlazada a una tarea de github
+  async hasTaskLink(idTaskMoodle: string, issuer: string): Promise<boolean> {
+    const taskLink = await this.taskLinkModel.findOne({
+      idTaskMoodle,
+      issuer,
+    });
+    return !!taskLink; //true si existe, false si no
+  }
+
+  //Devolver url de invitación de una tarea de moodle
+  async getInvitationUrlByMoodleTask(
+    idTaskMoodle: string,
+    issuer: string,
+  ): Promise<string> {
+    const taskLink = await this.taskLinkModel.findOne({
+      idTaskMoodle,
+      issuer,
+    });
+
+    if (!taskLink) {
+      throw new Error('No se encontró el enlace para esta tarea de Moodle.');
     }
 
-    //Devolver información de una tarea de moodle enlazada a una tarea de github
+    return taskLink.url_Invitation;
+  }
+
+  //Devolver información de una tarea de moodle enlazada a una tarea de github
   async getTaskLinkByMoodleTask(
     idTaskMoodle: string,
     issuer: string,
@@ -97,5 +127,4 @@ export class LtiValidationService {
 
     return taskLink; // Devuelve la tarea enlazada
   }
-  
 }

@@ -29,6 +29,7 @@ export class User {
         enum: ['Student', 'Teacher', 'ORG_Admin'],
         required: true,
       },
+      isActive: { type: Boolean, default: true },
     },
   ])
   organizations: {

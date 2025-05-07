@@ -125,6 +125,6 @@ export class LtiValidationService {
       throw new Error('No se encontró el enlace para esta tarea de Moodle.');
     }
 
-    return taskLink; // Devuelve la tarea enlazada
+    return taskLink; 
   }
 }

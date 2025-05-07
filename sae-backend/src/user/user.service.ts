@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -156,10 +156,7 @@ export class UserService {
         if (previousRole === 'ORG_Admin') {
           return 'ORG_Admin';
         }
-        const orgAdminExists = await this.userModel.exists({
-          'organizations': { $elemMatch: { orgId, role: 'ORG_Admin' } }
-        });
-        return !orgAdminExists ? 'ORG_Admin' : 'Teacher';
+        return 'Teacher';
       }
       return 'Student';
     };
@@ -168,6 +165,7 @@ export class UserService {
       orgId: string;
       orgName: string;
       role: 'Student' | 'Teacher' | 'ORG_Admin';
+      isActive: boolean;
     }[] = [];
   
     for (const githubOrg of githubOrgs) {
@@ -185,6 +183,7 @@ export class UserService {
         orgId: String(githubOrg.orgId),
         orgName: githubOrg.orgName,
         role: roleInApp,
+        isActive: existingOrg?.isActive ?? true,
       });
     }
   
@@ -223,6 +222,96 @@ export class UserService {
         isRoot: existingUser.isRoot,
       };
     }
+  }
+
+  //Mostrar todos los usuarios de una organización
+  async getUsersGroupedByOrganization() {
+    const users = await this.userModel.find({}, {
+      email: 1,
+      name: 1,
+      githubUsername: 1,
+      organizations: 1,
+      _id: 0,
+    }).lean();
+  
+    const orgMap = new Map<string, {
+      orgId: string;
+      orgName: string;
+      users: {
+        email: string;
+        name: string | null;
+        githubUsername: string | null;
+        role: string;
+        isActive?: boolean;
+      }[];
+    }>();
+  
+    for (const user of users) {
+      for (const org of user.organizations || []) {
+        const key = org.orgId;
+  
+        if (!orgMap.has(key)) {
+          orgMap.set(key, {
+            orgId: org.orgId,
+            orgName: org.orgName,
+            users: [],
+          });
+        }
+  
+        orgMap.get(key)!.users.push({
+          email: user.email,
+          name: user.name,
+          githubUsername: user.githubUsername,
+          role: org.role,
+          isActive: org.isActive,
+        });
+      }
+    }
+  
+    return Array.from(orgMap.values());
+  }
+
+  //Asignar rol de ORG_Admin a un usuario en una organización
+  async assignOrgAdminRole(userId: string, orgId: string): Promise<void> {
+    const user = await this.userModel.findById(userId);
+  
+    if (!user) {
+      throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
+    }
+  
+    const org = user.organizations.find((o) => o.orgId === orgId);
+  
+    if (!org) {
+      throw new HttpException(
+        'El usuario no pertenece a la organización especificada',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  
+    org.role = 'ORG_Admin';
+  
+    await user.save();
+  }
+
+  //Activar o desactivar un usuario en una organización
+  async toggleUserStatus(userId: string, orgId: string, activate: boolean): Promise<void> {
+    const user = await this.userModel.findById(userId);
+  
+    if (!user) {
+      throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
+    }
+  
+    const org = user.organizations.find((o) => o.orgId === orgId);
+  
+    if (!org) {
+      throw new HttpException(
+        'El usuario no pertenece a la organización especificada',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  
+    org.isActive = activate;
+    await user.save();
   }
   
 }

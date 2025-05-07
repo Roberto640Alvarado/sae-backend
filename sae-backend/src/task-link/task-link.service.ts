@@ -25,6 +25,7 @@ export class TaskLinkService {
       idTaskMoodle,
       idCursoMoodle,
       orgId,
+      orgName,
       emailOwner,
     } = data;
 
@@ -49,15 +50,17 @@ export class TaskLinkService {
       throw new NotFoundException('No se encontró el usuario con ese correo.');
     }
 
-    const isPartOfOrg = user.organizations?.some((org) => org.orgId === orgId);
+    // Verificar si pertenece a la organización y si el nombre coincide exactamente
+    const orgMatch = user.organizations?.find(
+      (org) => org.orgId === orgId && org.orgName === orgName,
+    );
 
-    if (!isPartOfOrg) {
+    if (!orgMatch) {
       throw new HttpException(
-        'El usuario no pertenece a la organización especificada.',
+        'El usuario no pertenece a la organización especificada o el nombre de la organización no coincide.',
         HttpStatus.FORBIDDEN,
       );
     }
-
     return this.taskLinkModel.create({ ...data, createdAt: new Date() });
   }
 

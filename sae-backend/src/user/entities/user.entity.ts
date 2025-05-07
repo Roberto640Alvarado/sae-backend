@@ -35,6 +35,7 @@ export class User {
     orgId: string;
     orgName: string;
     role: 'Student' | 'Teacher' | 'ORG_Admin';
+    isActive?: boolean;
   }[];
 }
 

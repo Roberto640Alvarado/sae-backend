@@ -133,7 +133,7 @@ export class UserController {
   }
 
   //Asignar rol de ORG_Admin a un usuario en una organización
-  @Post('assign-org-admin')
+  @Patch('assign-org-admin')
   async assignOrgAdmin(
     @Query('userId') userId: string,
     @Query('orgId') orgId: string,

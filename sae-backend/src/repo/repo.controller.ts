@@ -362,6 +362,7 @@ export class RepoController {
   @Post(':repo/pr/feedback')
   async addFeedbackToPR(
     @Param('repo') repo: string,
+    @Query('orgName') orgName: string,
     @Body('feedback') feedback: string,
     @Res() res: Response,
     @Headers('authorization') authHeader: string,
@@ -379,10 +380,9 @@ export class RepoController {
           .json({ error: 'El feedback es obligatorio.' });
       }
 
-      const owner = process.env.ORG_NAME!;
       const response = await this.repoService.postFeedbackToPR(
         token,
-        owner,
+        orgName,
         repo,
         feedback,
       );

@@ -146,10 +146,14 @@ export class UserController {
     }
 
     try {
-      await this.userService.assignOrgAdminRole(userId, orgId);
+      const result = await this.userService.assignOrgAdminRole(userId, orgId);
       return {
         statusCode: HttpStatus.OK,
         message: 'Rol ORG_Admin asignado correctamente',
+        data: {
+          nuevoAdmin: result.newAdmin,
+          anteriorAdmin: result.previousAdmin || 'No había uno antes',
+        },
       };
     } catch (error) {
       throw new HttpException(error.message, error.status || 500);

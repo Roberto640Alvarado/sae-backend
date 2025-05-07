@@ -271,27 +271,45 @@ export class UserService {
     return Array.from(orgMap.values());
   }
 
-  //Asignar rol de ORG_Admin a un usuario en una organización
-  async assignOrgAdminRole(userId: string, orgId: string): Promise<void> {
-    const user = await this.userModel.findById(userId);
+  //Asignar rol de admin a un usuario en una organización
+  async assignOrgAdminRole(userId: string, orgId: string) {
+    const currentAdmin = await this.userModel.findOne({
+      organizations: {
+        $elemMatch: { orgId, role: 'ORG_Admin' },
+      },
+    });
   
-    if (!user) {
+    const newAdmin = await this.userModel.findById(userId);
+    if (!newAdmin) {
       throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
     }
   
-    const org = user.organizations.find((o) => o.orgId === orgId);
-  
-    if (!org) {
+    // Buscar y actualizar rol del nuevo admin
+    const targetOrg = newAdmin.organizations.find((org) => org.orgId === orgId);
+    if (!targetOrg) {
       throw new HttpException(
-        'El usuario no pertenece a la organización especificada',
+        'El usuario no pertenece a esa organización',
         HttpStatus.BAD_REQUEST,
       );
     }
   
-    org.role = 'ORG_Admin';
+    targetOrg.role = 'ORG_Admin';
+    await newAdmin.save();
   
-    await user.save();
+    return {
+      newAdmin: {
+        email: newAdmin.email,
+        name: newAdmin.name,
+      },
+      previousAdmin: currentAdmin
+        ? {
+            email: currentAdmin.email,
+            name: currentAdmin.name,
+          }
+        : null,
+    };
   }
+  
 
   //Activar o desactivar un usuario en una organización
   async toggleUserStatus(userId: string, orgId: string, activate: boolean): Promise<void> {

@@ -1,19 +1,19 @@
 import {
-    Controller,
-    Post,
-    Body,
-    Query,
-    HttpException,
-    HttpStatus,
-    Get,
-  } from '@nestjs/common';
-  import { TaskLinkService } from './task-link.service';
-  
-  @Controller('task-link')
-  export class TaskLinkController {
-    constructor(private readonly taskLinkService: TaskLinkService) {}
-  
-    @Post('create')
+  Controller,
+  Post,
+  Body,
+  Query,
+  HttpException,
+  HttpStatus,
+  Get,
+} from '@nestjs/common';
+import { TaskLinkService } from './task-link.service';
+
+@Controller('task-link')
+export class TaskLinkController {
+  constructor(private readonly taskLinkService: TaskLinkService) {}
+
+  @Post('create')
   async create(@Body() body: any) {
     const created = await this.taskLinkService.createLink(body);
     return {
@@ -21,7 +21,28 @@ import {
       data: created,
     };
   }
-  
+
+  @Get('github-tasks')
+  async getGithubTasksByClassroom(@Query('idClassroom') idClassroom: string) {
+    if (!idClassroom) {
+      throw new HttpException(
+        'El parámetro idClassroom es requerido.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      const tasks =
+        await this.taskLinkService.getLinkedGithubTasksByClassroom(idClassroom);
+      return {
+        message: 'Tareas enlazadas obtenidas correctamente.',
+        data: tasks,
+      };
+    } catch (error) {
+      throw new HttpException(error.message, error.status || 500);
+    }
+  }
+
   @Get('invitation-url')
   async getInvitationUrl(
     @Query('idTaskMoodle') idTaskMoodle: string,
@@ -33,13 +54,15 @@ import {
         HttpStatus.BAD_REQUEST,
       );
     }
-  
+
     try {
-      const url = await this.taskLinkService.getInvitationUrlByMoodleTask(idTaskMoodle, issuer);
+      const url = await this.taskLinkService.getInvitationUrlByMoodleTask(
+        idTaskMoodle,
+        issuer,
+      );
       return { invitationUrl: url };
     } catch (error) {
       throw new HttpException(error.message, error.status || 500);
     }
   }
-  }
-  
+}

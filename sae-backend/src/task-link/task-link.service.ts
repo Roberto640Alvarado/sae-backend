@@ -75,4 +75,15 @@ export class TaskLinkService {
 
     return link.url_Invitation;
   }
+
+  //Traer todas las tareas enlazadas por idTaskMoodle
+  async getLinkedGithubTasksByClassroom(idClassroom: string): Promise<string[]> {
+    const tasks = await this.taskLinkModel.find({ idClassroom }).select('idTaskGithubClassroom');
+
+    if (!tasks.length) {
+      throw new NotFoundException('No se encontraron tareas enlazadas para este idClassroom.');
+    }
+
+    return tasks.map(t => t.idTaskGithubClassroom);
+  }
 }

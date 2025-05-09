@@ -9,6 +9,7 @@ import {
   Param,
   HttpException,
   HttpStatus,
+  Headers,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -34,7 +35,14 @@ export class ModelTypeController {
 
   //Traer todos los tipos de modelo (proveedores)
   @Get('all')
-  async getAllModelTypes() {
+  async getAllModelTypes(@Headers('authorization') authHeader: string) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     const modelTypes = await this.modelTypeModel.find();
 
     if (!modelTypes.length) {
@@ -48,8 +56,18 @@ export class ModelTypeController {
 
   //Crear un modelo de IA
   @Post('create')
-  async createModel(@Body() body: any) {
+  async createModel(
+    @Headers('authorization') authHeader: string,
+    @Body() body: any,
+  ) {
     try {
+      if (!authHeader) {
+        throw new HttpException(
+          'Token no proporcionado en el header Authorization.',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       const createdModel = await this.modelService.createModel(body);
 
       return {
@@ -67,8 +85,18 @@ export class ModelTypeController {
 
   //Eliminar un modelo de IA
   @Delete('delete/:id')
-  async deleteModel(@Param('id') id: string) {
+  async deleteModel(
+    @Param('id') id: string,
+    @Headers('authorization') authHeader: string,
+  ) {
     try {
+      if (!authHeader) {
+        throw new HttpException(
+          'Token no proporcionado en el header Authorization.',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       const deletedModel = await this.modelService.deleteModel(id);
 
       return {
@@ -87,10 +115,18 @@ export class ModelTypeController {
   //Agregar un Teacher al modelo
   @Patch('add-teacher')
   async addTeacherToModel(
+    @Headers('authorization') authHeader: string,
     @Query('modelId') modelId: string,
     @Query('email') email: string,
     @Query('orgId') orgId: string,
   ) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     if (!modelId || !email || !orgId) {
       throw new HttpException(
         'Se requieren modelId, email y orgId.',
@@ -121,10 +157,18 @@ export class ModelTypeController {
   //Eliminar un Teacher del modelo
   @Patch('remove-teacher')
   async removeTeacherFromModel(
+    @Headers('authorization') authHeader: string,
     @Query('modelId') modelId: string,
     @Query('email') email: string,
     @Query('orgId') orgId: string,
   ) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     if (!modelId || !email || !orgId) {
       throw new HttpException(
         'Se requieren modelId, email y orgId.',
@@ -155,8 +199,17 @@ export class ModelTypeController {
   //Obtener todos los modelos que puede usar un Teacher
   @Get('models-for-teacher')
   async getModelsForTeacher(
+    @Headers('authorization') authHeader: string,
     @Query('email') email: string,
-    @Query('orgId') orgId: string,){
+    @Query('orgId') orgId: string,
+  ) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     if (!email) {
       throw new HttpException(
         'Se requiere el parámetro email.',
@@ -189,7 +242,17 @@ export class ModelTypeController {
 
   //Obtener los modelos de una organización
   @Get('org-models')
-  async getModelsByOrg(@Query('orgId') orgId: string) {
+  async getModelsByOrg(
+    @Headers('authorization') authHeader: string,
+    @Query('orgId') orgId: string,
+  ) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     if (!orgId) {
       throw new HttpException(
         'El campo "orgId" es requerido.',
@@ -212,23 +275,5 @@ export class ModelTypeController {
       total: models.length,
       models,
     };
-  }
-
-  //Obtener la key de un modelo por su ID
-  @Get('apikey/:modelId')
-  async getApiKey(@Param('modelId') modelId: string) {
-    try {
-      const apiKey = await this.modelService.getApiKeyByModelId(modelId);
-      return {
-        statusCode: 200,
-        message: 'API Key obtenida correctamente',
-        data: apiKey,
-      };
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Error al obtener la API Key.',
-        HttpStatus.NOT_FOUND,
-      );
-    }
   }
 }

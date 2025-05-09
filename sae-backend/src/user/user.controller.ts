@@ -51,7 +51,18 @@ export class UserController {
 
   //Traer todos los profesores
   @Get('teachers')
-  async getTeachersByOrgId(@Query('orgId') orgId: string) {
+  async getTeachersByOrgId(
+    @Query('orgId') orgId: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     if (!orgId) {
       throw new HttpException(
         'El parámetro "orgId" es obligatorio.',
@@ -70,7 +81,18 @@ export class UserController {
 
   //Traer info de un usuario por su correo
   @Get('teacher/:email')
-  async getUserByEmail(@Param('email') email: string) {
+  async getUserByEmail(
+    @Param('email') email: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     if (!email) {
       throw new HttpException(
         'El correo es requerido.',
@@ -93,7 +115,18 @@ export class UserController {
 
   //Traer el email de un usuario por su githubUsername
   @Get('students/:login/email')
-  async getEmailByGithubUsername(@Param('login') login: string) {
+  async getEmailByGithubUsername(
+    @Param('login') login: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     if (!login) {
       throw new HttpException(
         'El githubUsername es requerido.',
@@ -116,8 +149,15 @@ export class UserController {
 
   //Traer todos los usuarios de una organización
   @Get('by-org')
-  async getUsersGroupedByOrg() {
+  async getUsersGroupedByOrg(@Headers('authorization') authHeader: string) {
     try {
+      if (!authHeader) {
+        throw new HttpException(
+          'Token no proporcionado en el header Authorization.',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       const result = await this.userService.getUsersGroupedByOrganization();
       return {
         statusCode: HttpStatus.OK,
@@ -137,7 +177,16 @@ export class UserController {
   async assignOrgAdmin(
     @Query('userId') userId: string,
     @Query('orgId') orgId: string,
+    @Headers('authorization') authHeader: string,
   ) {
+
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     if (!userId || !orgId) {
       throw new HttpException(
         'userId y orgId son requeridos',
@@ -165,8 +214,17 @@ export class UserController {
   async updateUserStatus(
     @Query('userId') userId: string,
     @Query('orgId') orgId: string,
-    @Query('activate') activate: string, // espera 'true' o 'false' como string
+    @Query('activate') activate: string, //espera 'true' o 'false' como string
+    @Headers('authorization') authHeader: string,
   ) {
+
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    
     if (!userId || !orgId || typeof activate === 'undefined') {
       throw new HttpException(
         'userId, orgId y activate son requeridos',

@@ -46,8 +46,9 @@ export class RepoController {
     @Query('orgId') orgId: string,
   ) {
     if (!authHeader) {
-      throw new NotFoundException(
+      throw new HttpException(
         'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
       );
     }
 
@@ -76,55 +77,6 @@ export class RepoController {
     }
   }
 
-  //Verificar si una classroom específica pertenece a una organización
-  @Get('classrooms/validate')
-  async validateClassroomInOrg(
-    @Headers('authorization') authHeader: string,
-    @Query('orgId') orgId: string,
-    @Query('classroomId') classroomId: string,
-  ) {
-    if (!authHeader) {
-      throw new NotFoundException(
-        'Token no proporcionado en el header Authorization.',
-      );
-    }
-
-    if (!orgId || !classroomId) {
-      throw new BadRequestException(
-        'Se requieren orgId y classroomId como parámetros.',
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-
-    try {
-      const classroom = await this.repoService.isClassroomInOrg(
-        token,
-        orgId,
-        classroomId,
-      );
-
-      if (!classroom) {
-        throw new NotFoundException(
-          'La classroom no pertenece a la organización.',
-        );
-      }
-
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'La classroom pertenece a la organización.',
-        data: classroom,
-      };
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        'Error al validar la classroom en la organización.',
-      );
-    }
-  }
-
   //Obtener todas las tareas de una classroom
   @Get('classrooms/:id/assignments')
   async getAssignments(
@@ -132,8 +84,9 @@ export class RepoController {
     @Headers('authorization') authHeader: string,
   ) {
     if (!authHeader) {
-      throw new NotFoundException(
+      throw new HttpException(
         'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
       );
     }
 
@@ -173,8 +126,9 @@ export class RepoController {
     @Headers('authorization') authHeader: string,
   ) {
     if (!authHeader) {
-      throw new NotFoundException(
+      throw new HttpException(
         'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
       );
     }
 
@@ -215,8 +169,9 @@ export class RepoController {
     @Headers('authorization') authHeader: string,
   ) {
     if (!authHeader) {
-      throw new NotFoundException(
+      throw new HttpException(
         'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
       );
     }
 
@@ -250,7 +205,7 @@ export class RepoController {
     }
   }
 
-  // Obtener detalles del último workflow run de un repositorio
+  //Obtener detalles del último workflow run de un repositorio
   @Get(':repo/workflow/details')
   async getLatestWorkflowDetails(
     @Param('repo') repo: string,
@@ -258,10 +213,12 @@ export class RepoController {
     @Query('orgName') orgName: string,
   ) {
     if (!authHeader) {
-      throw new NotFoundException(
+      throw new HttpException(
         'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
       );
     }
+
     const token = authHeader.replace('Bearer ', '');
     try {
       const latestRun = await this.repoService.fetchLatestWorkflowRun(
@@ -336,8 +293,9 @@ export class RepoController {
     @Headers('authorization') authHeader: string,
   ) {
     if (!authHeader) {
-      throw new NotFoundException(
+      throw new HttpException(
         'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
       );
     }
     const token = authHeader.replace('Bearer ', '');
@@ -368,8 +326,9 @@ export class RepoController {
     @Headers('authorization') authHeader: string,
   ) {
     if (!authHeader) {
-      throw new NotFoundException(
+      throw new HttpException(
         'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
       );
     }
     const token = authHeader.replace('Bearer ', '');

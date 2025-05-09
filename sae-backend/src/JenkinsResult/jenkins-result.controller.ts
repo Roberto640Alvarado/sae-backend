@@ -6,6 +6,7 @@ import {
   Param,
   HttpStatus,
   HttpException,
+  Headers
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -26,7 +27,16 @@ export class JenkinsResultController {
   async createOrUpdateResult(
     @Body('repo') repo: string,
     @Body('jenkinsScore') jenkinsScore: number,
+    @Headers('authorization') authHeader: string,
   ) {
+
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     if (!repo || jenkinsScore == null) {
       throw new HttpException(
         'Campos repo y jenkinsScore requeridos.',
@@ -56,7 +66,17 @@ export class JenkinsResultController {
 
   //Obtener resultado por nombre de repositorio
   @Get(':repo')
-  async getResultByRepo(@Param('repo') repo: string) {
+  async getResultByRepo(
+    @Param('repo') repo: string,
+    @Headers('authorization') authHeader: string,
+) {
+
+  if (!authHeader) {
+    throw new HttpException(
+      'Token no proporcionado en el header Authorization.',
+      HttpStatus.UNAUTHORIZED,
+    );
+  }
     const result = await this.jenkinsModel.findOne({ repo });
 
     if (!result) {

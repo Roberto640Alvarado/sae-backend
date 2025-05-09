@@ -6,6 +6,7 @@ import {
   HttpException,
   HttpStatus,
   Get,
+  Headers,
 } from '@nestjs/common';
 import { TaskLinkService } from './task-link.service';
 
@@ -13,8 +14,19 @@ import { TaskLinkService } from './task-link.service';
 export class TaskLinkController {
   constructor(private readonly taskLinkService: TaskLinkService) {}
 
+  //Crear enlace de tarea de github y moodle
   @Post('create')
-  async create(@Body() body: any) {
+  async create(
+    @Headers('authorization') authHeader: string,
+    @Body() body: any) {
+
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     const created = await this.taskLinkService.createLink(body);
     return {
       message: 'Enlace creado correctamente.',
@@ -22,8 +34,19 @@ export class TaskLinkController {
     };
   }
 
+  //Obtener todas las tareas enlazadas de moodle de una classroom
   @Get('github-tasks')
-  async getGithubTasksByClassroom(@Query('idClassroom') idClassroom: string) {
+  async getGithubTasksByClassroom(
+    @Query('idClassroom') idClassroom: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     if (!idClassroom) {
       throw new HttpException(
         'El parámetro idClassroom es requerido.',
@@ -43,26 +66,4 @@ export class TaskLinkController {
     }
   }
 
-  @Get('invitation-url')
-  async getInvitationUrl(
-    @Query('idTaskMoodle') idTaskMoodle: string,
-    @Query('issuer') issuer: string,
-  ) {
-    if (!idTaskMoodle || !issuer) {
-      throw new HttpException(
-        'Los parámetros idTaskMoodle y issuer son requeridos.',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    try {
-      const url = await this.taskLinkService.getInvitationUrlByMoodleTask(
-        idTaskMoodle,
-        issuer,
-      );
-      return { invitationUrl: url };
-    } catch (error) {
-      throw new HttpException(error.message, error.status || 500);
-    }
-  }
 }

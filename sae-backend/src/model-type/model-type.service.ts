@@ -110,7 +110,10 @@ export class ModelService {
     const user = await this.userModel.findOne({
       email,
       organizations: {
-        $elemMatch: { orgId, role: 'Teacher' },
+        $elemMatch: {
+          orgId,
+          role: { $in: ['Teacher', 'ORG_Admin'] },
+        },
       },
     });
 

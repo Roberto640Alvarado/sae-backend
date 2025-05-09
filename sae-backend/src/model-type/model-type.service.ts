@@ -134,7 +134,7 @@ export class ModelService {
     return model;
   }
 
-  async getModelsForTeacher(email: string): Promise<any[]> {
+  async getModelsForTeacher(email: string, orgId: string): Promise<any[]> {
     //Traer modelos personales (por ownerEmail)
     const personalModels = await this.modelModel
       .find({ ownerEmail: email })
@@ -143,7 +143,7 @@ export class ModelService {
 
     //Traer modelos organizacionales donde esté en allowedEmails
     const organizationalModels = await this.modelModel
-      .find({ allowedTeachers: email })
+      .find({ allowedTeachers: email, orgId })
       .populate('modelType', 'name')
       .lean();
 
@@ -165,8 +165,8 @@ export class ModelService {
   //Filtrar modelos que tengan este orgId
   async findModelsByOrgId(orgId: string) {
     const models = await this.modelModel
-      .find({ orgId }) 
-      .populate('modelType', 'name') 
+      .find({ orgId })
+      .populate('modelType', 'name')
       .lean();
 
     return models;
@@ -175,17 +175,19 @@ export class ModelService {
   //Eliminar un profesor de un modelo
   async removeTeacherFromModel(modelId: string, email: string, orgId: string) {
     const model = await this.modelModel.findOne({ _id: modelId, orgId });
-  
+
     if (!model) {
-      throw new Error('Modelo no encontrado para la organización especificada.');
+      throw new Error(
+        'Modelo no encontrado para la organización especificada.',
+      );
     }
-  
+
     if (!model.allowedTeachers.includes(email)) {
       throw new Error('El teacher no está asignado a este modelo.');
     }
-  
+
     //Remover el email del array
-    model.allowedTeachers = model.allowedTeachers.filter(e => e !== email);
+    model.allowedTeachers = model.allowedTeachers.filter((e) => e !== email);
     return model.save();
   }
 
@@ -197,6 +199,4 @@ export class ModelService {
     }
     return model.apiKey;
   }
-  
-  
 }

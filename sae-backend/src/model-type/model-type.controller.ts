@@ -154,7 +154,9 @@ export class ModelTypeController {
 
   //Obtener todos los modelos que puede usar un Teacher
   @Get('models-for-teacher')
-  async getModelsForTeacher(@Query('email') email: string) {
+  async getModelsForTeacher(
+    @Query('email') email: string,
+    @Query('orgId') orgId: string,){
     if (!email) {
       throw new HttpException(
         'Se requiere el parámetro email.',
@@ -162,8 +164,15 @@ export class ModelTypeController {
       );
     }
 
+    if (!orgId) {
+      throw new HttpException(
+        'Se requiere el parámetro orgId.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     try {
-      const models = await this.modelService.getModelsForTeacher(email);
+      const models = await this.modelService.getModelsForTeacher(email, orgId);
 
       return {
         statusCode: HttpStatus.OK,

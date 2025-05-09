@@ -100,7 +100,7 @@ export class UserService {
       organizations: {
         $elemMatch: {
           orgId,
-          role: 'Teacher',
+          role: { $in: ['Teacher', 'ORG_Admin'] },
         },
       },
     });

@@ -27,6 +27,7 @@ export class TaskLinkService {
       orgId,
       orgName,
       emailOwner,
+      issuer,
     } = data;
 
     //Verifica si ya existe una relación
@@ -39,6 +40,19 @@ export class TaskLinkService {
     if (exists) {
       throw new HttpException(
         'Ya existe una relación con esos IDs.',
+        HttpStatus.CONFLICT,
+      );
+    }
+    //Verifica si el idTaskMoodle y el idCursoMoodle e issuer ya existen EN LA BD
+    const taskMoodleExists = await this.taskLinkModel.findOne({
+      idTaskMoodle,
+      idCursoMoodle,
+      issuer,
+    });
+
+    if (taskMoodleExists) {
+      throw new HttpException(
+        'Ya existe una relación con esos IDs en la misma plataforma.',
         HttpStatus.CONFLICT,
       );
     }

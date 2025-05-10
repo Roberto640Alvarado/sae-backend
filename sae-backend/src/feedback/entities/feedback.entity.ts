@@ -23,6 +23,9 @@ export class Feedback {
   @Prop({ required: true, type: Number, min: 1 })
   gradeTotal: number;
 
+  @Prop({ required: true })
+  gradeFeedback: number;
+
   @Prop({
     required: true,
     enum: ['Pendiente', 'Generado', 'Enviado'],

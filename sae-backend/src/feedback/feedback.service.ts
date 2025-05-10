@@ -29,6 +29,7 @@ export class FeedbackService {
     email: string;
     idTaskGithubClassroom: string;
     feedback: string;
+    gradeFeedback: number;
     gradeValue: number;
     gradeTotal: number;
     modelIA?: string;
@@ -74,9 +75,16 @@ export class FeedbackService {
       const feedback =
         response?.choices?.[0]?.message?.content ||
         'No se pudo generar feedback.';
+
+      const notaRegex =
+        /\*\*NOTA_RETROALIMENTACION:\s*\[?(\d+(?:\.\d+)?)\]?\*\*/i;
+      const match = feedback.match(notaRegex);
+      const gradeFeedback = match ? parseFloat(match[1]) : 0;
+
       await this.saveFeedbackToDB({
         ...params,
         feedback,
+        gradeFeedback,
         status: 'Generado',
         modelIA: 'Deepseek',
       });
@@ -123,12 +131,19 @@ export class FeedbackService {
         top_p: 0.95,
       });
 
+      const notaRegex =
+        /\*\*NOTA_RETROALIMENTACION:\s*\[?(\d+(?:\.\d+)?)\]?\*\*/i;
+
       const feedback =
         response?.choices?.[0]?.message?.content ||
         'No se pudo generar feedback.';
+
+      const match = feedback.match(notaRegex);
+      const gradeFeedback = match ? parseFloat(match[1]) : 0;
       await this.saveFeedbackToDB({
         ...params,
         feedback,
+        gradeFeedback,
         status: 'Generado',
         modelIA: 'OpenAI',
       });
@@ -194,9 +209,16 @@ export class FeedbackService {
       const result = await genModel.generateContent(prompt);
       const feedback =
         result?.response?.text() || 'No se pudo generar feedback.';
+
+      const notaRegex =
+        /\*\*NOTA_RETROALIMENTACION:\s*\[?(\d+(?:\.\d+)?)\]?\*\*/i;
+      const match = feedback.match(notaRegex);
+      const gradeFeedback = match ? parseFloat(match[1]) : 0;
+
       await this.saveFeedbackToDB({
         ...params,
         feedback,
+        gradeFeedback,
         status: 'Generado',
         modelIA: 'Gemini',
       });

@@ -5,6 +5,7 @@ export interface GenerateFeedbackParams {
     code: string;
     gradeValue: number;
     gradeTotal: number;
+    gradeFeedback: number;
     modelIA: string;
     status: string;
     email: string;

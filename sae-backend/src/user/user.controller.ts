@@ -242,7 +242,18 @@ export class UserController {
 
   //actualizar el estado de todos los usuarios de una organización
   @Patch('deactivate-users/:orgId')
-  async deactivateUsersInOrg(@Param('orgId') orgId: string) {
+  async deactivateUsersInOrg(
+    @Param('orgId') orgId: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     const result = await this.userService.deactivateAllUsersInOrg(orgId);
     return {
       message: `Se desactivaron ${result.updatedCount} usuarios en la organización ${orgId}`,
@@ -251,7 +262,17 @@ export class UserController {
 
   //Todas las organizaciones
   @Get('organizations')
-  async getOrganizations() {
+  async getOrganizations(
+    @Headers('authorization') authHeader: string,
+  ) {
+
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     const organizations = await this.userService.getAllOrganizations();
     return {
       message: `Se encontraron ${organizations.length} organizaciones.`,

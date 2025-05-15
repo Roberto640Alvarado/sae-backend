@@ -309,19 +309,34 @@ export class UserService {
       throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
     }
 
-    // Buscar y actualizar rol del nuevo admin
-    const targetOrg = newAdmin.organizations.find((org) => org.orgId === orgId);
-    if (!targetOrg) {
+    //Validar que el nuevo admin pertenezca a esa organización
+    const newAdminOrg = newAdmin.organizations.find(
+      (org) => org.orgId === orgId,
+    );
+    if (!newAdminOrg) {
       throw new HttpException(
         'El usuario no pertenece a esa organización',
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    targetOrg.role = 'ORG_Admin';
+    //Actualizar el rol del admin anterior, si existe
+    if (currentAdmin && currentAdmin._id?.toString() !== userId) {
+      const previousOrg = currentAdmin.organizations.find(
+        (org) => org.orgId === orgId,
+      );
+      if (previousOrg) {
+        previousOrg.role = 'Teacher';
+        await currentAdmin.save();
+      }
+    }
+
+    //Asignar nuevo rol de ORG_Admin
+    newAdminOrg.role = 'ORG_Admin';
     await newAdmin.save();
 
     return {
+      message: 'Rol de ORG_Admin asignado correctamente.',
       newAdmin: {
         email: newAdmin.email,
         name: newAdmin.name,

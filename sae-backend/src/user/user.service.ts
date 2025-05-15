@@ -101,6 +101,7 @@ export class UserService {
         $elemMatch: {
           orgId,
           role: { $in: ['Teacher', 'ORG_Admin'] },
+          isActive: true,
         },
       },
     });

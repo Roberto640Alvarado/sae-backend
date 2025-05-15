@@ -55,7 +55,6 @@ export class UserController {
     @Query('orgId') orgId: string,
     @Headers('authorization') authHeader: string,
   ) {
-
     if (!authHeader) {
       throw new HttpException(
         'Token no proporcionado en el header Authorization.',
@@ -85,7 +84,6 @@ export class UserController {
     @Param('email') email: string,
     @Headers('authorization') authHeader: string,
   ) {
-
     if (!authHeader) {
       throw new HttpException(
         'Token no proporcionado en el header Authorization.',
@@ -119,7 +117,6 @@ export class UserController {
     @Param('login') login: string,
     @Headers('authorization') authHeader: string,
   ) {
-
     if (!authHeader) {
       throw new HttpException(
         'Token no proporcionado en el header Authorization.',
@@ -179,7 +176,6 @@ export class UserController {
     @Query('orgId') orgId: string,
     @Headers('authorization') authHeader: string,
   ) {
-
     if (!authHeader) {
       throw new HttpException(
         'Token no proporcionado en el header Authorization.',
@@ -217,14 +213,13 @@ export class UserController {
     @Query('activate') activate: string, //espera 'true' o 'false' como string
     @Headers('authorization') authHeader: string,
   ) {
-
     if (!authHeader) {
       throw new HttpException(
         'Token no proporcionado en el header Authorization.',
         HttpStatus.UNAUTHORIZED,
       );
     }
-    
+
     if (!userId || !orgId || typeof activate === 'undefined') {
       throw new HttpException(
         'userId, orgId y activate son requeridos',
@@ -243,5 +238,24 @@ export class UserController {
     } catch (error) {
       throw new HttpException(error.message, error.status || 500);
     }
+  }
+
+  //actualizar el estado de todos los usuarios de una organización
+  @Patch('deactivate-users/:orgId')
+  async deactivateUsersInOrg(@Param('orgId') orgId: string) {
+    const result = await this.userService.deactivateAllUsersInOrg(orgId);
+    return {
+      message: `Se desactivaron ${result.updatedCount} usuarios en la organización ${orgId}`,
+    };
+  }
+
+  //Todas las organizaciones
+  @Get('organizations')
+  async getOrganizations() {
+    const organizations = await this.userService.getAllOrganizations();
+    return {
+      message: `Se encontraron ${organizations.length} organizaciones.`,
+      data: organizations,
+    };
   }
 }

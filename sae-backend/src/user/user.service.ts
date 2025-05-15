@@ -106,7 +106,18 @@ export class UserService {
       },
     });
 
-    return teachers;
+    //Filtrar el array de organizaciones para dejar solo la que coincide con el orgId
+    const filteredTeachers = teachers.map((teacher) => {
+      const orgMatch = teacher.organizations.filter(
+        (org) => org.orgId === orgId && org.isActive,
+      );
+      return {
+        ...teacher.toObject(), //convertir a objeto plano
+        organizations: orgMatch,
+      };
+    });
+
+    return filteredTeachers;
   }
 
   //Obtener email por githubUsername
@@ -147,9 +158,13 @@ export class UserService {
     const existingUser = await this.userModel.findOne({ email });
     const { username, name } = await this.getGitHubUsernameAndName(token);
     const githubOrgs = await this.getGitHubOrganizations(token, username);
-  
+
     //Validar el rol del usuario en la organización
-    const determineRole = async (orgId: string, githubRole: string, previousRole?: 'Student' | 'Teacher' | 'ORG_Admin'): Promise<'Student' | 'Teacher' | 'ORG_Admin'> => {
+    const determineRole = async (
+      orgId: string,
+      githubRole: string,
+      previousRole?: 'Student' | 'Teacher' | 'ORG_Admin',
+    ): Promise<'Student' | 'Teacher' | 'ORG_Admin'> => {
       if (githubRole === 'member') {
         return 'Student';
       }
@@ -161,25 +176,25 @@ export class UserService {
       }
       return 'Student';
     };
-  
+
     const updatedOrganizations: {
       orgId: string;
       orgName: string;
       role: 'Student' | 'Teacher' | 'ORG_Admin';
       isActive: boolean;
     }[] = [];
-  
+
     for (const githubOrg of githubOrgs) {
       const existingOrg = existingUser?.organizations.find(
-        (o) => o.orgId === String(githubOrg.orgId)
+        (o) => o.orgId === String(githubOrg.orgId),
       );
-  
+
       const roleInApp = await determineRole(
         String(githubOrg.orgId),
         githubOrg.role,
-        existingOrg?.role
+        existingOrg?.role,
       );
-  
+
       updatedOrganizations.push({
         orgId: String(githubOrg.orgId),
         orgName: githubOrg.orgName,
@@ -187,7 +202,7 @@ export class UserService {
         isActive: existingOrg?.isActive ?? true,
       });
     }
-  
+
     if (!existingUser) {
       const newUser = await this.userModel.create({
         email,
@@ -197,7 +212,7 @@ export class UserService {
         isRoot: false,
         organizations: updatedOrganizations,
       });
-  
+
       return {
         message: 'Usuario creado exitosamente',
         email: newUser.email,
@@ -213,7 +228,7 @@ export class UserService {
       existingUser.name = name;
       existingUser.organizations = updatedOrganizations;
       await existingUser.save();
-  
+
       return {
         message: 'Usuario actualizado exitosamente',
         email: existingUser.email,
@@ -227,30 +242,38 @@ export class UserService {
 
   //Mostrar todos los usuarios de una organización
   async getUsersGroupedByOrganization() {
-    const users = await this.userModel.find({}, {
-      email: 1,
-      name: 1,
-      githubUsername: 1,
-      organizations: 1,
-    }).lean();
-  
-    const orgMap = new Map<string, {
-      orgId: string;
-      orgName: string;
-      users: {
-        _id: any;
-        email: string;
-        name: string | null;
-        githubUsername: string | null;
-        role: string;
-        isActive?: boolean;
-      }[];
-    }>();
-  
+    const users = await this.userModel
+      .find(
+        {},
+        {
+          email: 1,
+          name: 1,
+          githubUsername: 1,
+          organizations: 1,
+        },
+      )
+      .lean();
+
+    const orgMap = new Map<
+      string,
+      {
+        orgId: string;
+        orgName: string;
+        users: {
+          _id: any;
+          email: string;
+          name: string | null;
+          githubUsername: string | null;
+          role: string;
+          isActive?: boolean;
+        }[];
+      }
+    >();
+
     for (const user of users) {
       for (const org of user.organizations || []) {
         const key = org.orgId;
-  
+
         if (!orgMap.has(key)) {
           orgMap.set(key, {
             orgId: org.orgId,
@@ -258,7 +281,7 @@ export class UserService {
             users: [],
           });
         }
-  
+
         orgMap.get(key)!.users.push({
           _id: user._id,
           email: user.email,
@@ -269,7 +292,7 @@ export class UserService {
         });
       }
     }
-  
+
     return Array.from(orgMap.values());
   }
 
@@ -280,12 +303,12 @@ export class UserService {
         $elemMatch: { orgId, role: 'ORG_Admin' },
       },
     });
-  
+
     const newAdmin = await this.userModel.findById(userId);
     if (!newAdmin) {
       throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
     }
-  
+
     // Buscar y actualizar rol del nuevo admin
     const targetOrg = newAdmin.organizations.find((org) => org.orgId === orgId);
     if (!targetOrg) {
@@ -294,10 +317,10 @@ export class UserService {
         HttpStatus.BAD_REQUEST,
       );
     }
-  
+
     targetOrg.role = 'ORG_Admin';
     await newAdmin.save();
-  
+
     return {
       newAdmin: {
         email: newAdmin.email,
@@ -311,27 +334,84 @@ export class UserService {
         : null,
     };
   }
-  
 
   //Activar o desactivar un usuario en una organización
-  async toggleUserStatus(userId: string, orgId: string, activate: boolean): Promise<void> {
+  async toggleUserStatus(
+    userId: string,
+    orgId: string,
+    activate: boolean,
+  ): Promise<void> {
     const user = await this.userModel.findById(userId);
-  
+
     if (!user) {
       throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
     }
-  
+
     const org = user.organizations.find((o) => o.orgId === orgId);
-  
+
     if (!org) {
       throw new HttpException(
         'El usuario no pertenece a la organización especificada',
         HttpStatus.BAD_REQUEST,
       );
     }
-  
+
     org.isActive = activate;
     await user.save();
   }
-  
+
+  //Desactivar a todos los usuarios de una organización
+  async deactivateAllUsersInOrg(
+    orgId: string,
+  ): Promise<{ updatedCount: number }> {
+    const users = await this.userModel.find({
+      organizations: {
+        $elemMatch: {
+          orgId,
+          isActive: true,
+        },
+      },
+    });
+
+    let updatedCount = 0;
+
+    for (const user of users) {
+      let modified = false;
+
+      for (const org of user.organizations) {
+        if (org.orgId === orgId && org.isActive) {
+          org.isActive = false;
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        await user.save();
+        updatedCount++;
+      }
+    }
+
+    return { updatedCount };
+  }
+
+  //Obtener todas las organizaciones únicas
+  async getAllOrganizations(): Promise<{ orgId: string; orgName: string }[]> {
+    const users = await this.userModel.find({}, { organizations: 1 }).lean();
+
+    const orgSet = new Map<string, string>(); // Map<orgId, orgName>
+
+    for (const user of users) {
+      for (const org of user.organizations || []) {
+        if (!orgSet.has(org.orgId)) {
+          orgSet.set(org.orgId, org.orgName);
+        }
+      }
+    }
+
+    //Convertir a array
+    return Array.from(orgSet.entries()).map(([orgId, orgName]) => ({
+      orgId,
+      orgName,
+    }));
+  }
 }

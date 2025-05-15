@@ -231,13 +231,13 @@ export class UserService {
       name: 1,
       githubUsername: 1,
       organizations: 1,
-      _id: 0,
     }).lean();
   
     const orgMap = new Map<string, {
       orgId: string;
       orgName: string;
       users: {
+        _id: any;
         email: string;
         name: string | null;
         githubUsername: string | null;
@@ -259,6 +259,7 @@ export class UserService {
         }
   
         orgMap.get(key)!.users.push({
+          _id: user._id,
           email: user.email,
           name: user.name,
           githubUsername: user.githubUsername,

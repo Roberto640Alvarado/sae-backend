@@ -108,7 +108,7 @@ export class UserService {
     //Filtrar el array de organizaciones para dejar solo la que coincide con el orgId
     const filteredTeachers = teachers.map((teacher) => {
       const orgMatch = teacher.organizations.filter(
-        (org) => org.orgId === orgId && org.isActive,
+        (org) => org.orgId === orgId
       );
       return {
         ...teacher.toObject(), //convertir a objeto plano

@@ -246,7 +246,6 @@ export class UserController {
     @Param('orgId') orgId: string,
     @Headers('authorization') authHeader: string,
   ) {
-
     if (!authHeader) {
       throw new HttpException(
         'Token no proporcionado en el header Authorization.',
@@ -260,12 +259,28 @@ export class UserController {
     };
   }
 
-  //Todas las organizaciones
-  @Get('organizations')
-  async getOrganizations(
+  //Activar todos los usuarios de una organización
+  @Patch('activate-users/:orgId')
+  async activateUsersInOrg(
+    @Param('orgId') orgId: string,
     @Headers('authorization') authHeader: string,
   ) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
 
+    const result = await this.userService.activateAllUsersInOrg(orgId);
+    return {
+      message: `Se activaron ${result.updatedCount} usuarios en la organización ${orgId}`,
+    };
+  }
+
+  //Todas las organizaciones
+  @Get('organizations')
+  async getOrganizations(@Headers('authorization') authHeader: string) {
     if (!authHeader) {
       throw new HttpException(
         'Token no proporcionado en el header Authorization.',

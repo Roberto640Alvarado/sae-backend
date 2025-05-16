@@ -101,7 +101,6 @@ export class UserService {
         $elemMatch: {
           orgId,
           role: { $in: ['Teacher', 'ORG_Admin'] },
-          isActive: true,
         },
       },
     });
@@ -409,24 +408,67 @@ export class UserService {
     return { updatedCount };
   }
 
+  //Activar a todos los usuarios de una organización
+  async activateAllUsersInOrg(
+    orgId: string,
+  ): Promise<{ updatedCount: number }> {
+    const users = await this.userModel.find({
+      organizations: {
+        $elemMatch: {
+          orgId,
+          isActive: false,
+        },
+      },
+    });
+
+    let updatedCount = 0;
+
+    for (const user of users) {
+      let modified = false;
+
+      for (const org of user.organizations) {
+        if (org.orgId === orgId && !org.isActive) {
+          org.isActive = true;
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        await user.save();
+        updatedCount++;
+      }
+    }
+
+    return { updatedCount };
+  }
+
   //Obtener todas las organizaciones únicas
-  async getAllOrganizations(): Promise<{ orgId: string; orgName: string }[]> {
+  async getAllOrganizations(): Promise<
+    { orgId: string; orgName: string; isActive: boolean }[]
+  > {
     const users = await this.userModel.find({}, { organizations: 1 }).lean();
 
-    const orgSet = new Map<string, string>(); // Map<orgId, orgName>
+    const orgMap = new Map<string, { orgName: string; hasActive: boolean }>();
 
     for (const user of users) {
       for (const org of user.organizations || []) {
-        if (!orgSet.has(org.orgId)) {
-          orgSet.set(org.orgId, org.orgName);
+        if (!orgMap.has(org.orgId)) {
+          //Inicializar con el primer registro encontrado
+          orgMap.set(org.orgId, {
+            orgName: org.orgName,
+            hasActive: !!org.isActive, //true si el primero ya es activo
+          });
+        } else if (org.isActive) {
+          //Si ya existe pero encontramos uno activo, actualizar a true
+          orgMap.get(org.orgId)!.hasActive = true;
         }
       }
     }
 
-    //Convertir a array
-    return Array.from(orgSet.entries()).map(([orgId, orgName]) => ({
+    return Array.from(orgMap.entries()).map(([orgId, value]) => ({
       orgId,
-      orgName,
+      orgName: value.orgName,
+      isActive: value.hasActive,
     }));
   }
 }

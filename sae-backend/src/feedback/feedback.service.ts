@@ -10,6 +10,7 @@ import {
 } from '../model-type/entities/model.entity';
 import { buildFeedbackPrompt } from '../shared/prompts/feedback-prompt.template';
 import { GenerateFeedbackParams } from '../shared/dto/generate-feedback.dto';
+import { decrypt } from '../utils/encryption.util';
 
 @Injectable()
 export class FeedbackService {
@@ -60,8 +61,11 @@ export class FeedbackService {
         throw new Error('Modelo de IA no encontrado.');
       }
 
+      //Desencriptar la API Key
+      const realApiKey = decrypt(model.apiKey);
+
       const deepseek = new OpenAI({
-        apiKey: model.apiKey,
+        apiKey: realApiKey,
         baseURL: 'https://api.deepseek.com',
       });
 
@@ -76,10 +80,9 @@ export class FeedbackService {
         response?.choices?.[0]?.message?.content ||
         'No se pudo generar feedback.';
 
-      const notaRegex =
-        /\*\*NOTA_RETROALIMENTACION:\s*\[?(\d+(?:\.\d+)?)\]?\*\*/i;
+      const notaRegex = /\*{2}NOTA_RETROALIMENTACION:\s*\[?\s*(\d+(?:[.,]\d+)?)\s*\]?\*{2}/i;
       const match = feedback.match(notaRegex);
-      const gradeFeedback = match ? parseFloat(match[1]) : 0;
+      const gradeFeedback = match ? parseFloat(match[1].replace(',', '.')) : 0;
 
       await this.saveFeedbackToDB({
         ...params,
@@ -115,7 +118,10 @@ export class FeedbackService {
         throw new Error('Modelo de IA no encontrado.');
       }
 
-      const openai = new OpenAI({ apiKey: model.apiKey });
+      //Desencriptar la API Key
+      const realApiKey = decrypt(model.apiKey);
+
+      const openai = new OpenAI({ apiKey: realApiKey });
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -131,15 +137,14 @@ export class FeedbackService {
         top_p: 0.95,
       });
 
-      const notaRegex =
-        /\*\*NOTA_RETROALIMENTACION:\s*\[?(\d+(?:\.\d+)?)\]?\*\*/i;
-
       const feedback =
         response?.choices?.[0]?.message?.content ||
         'No se pudo generar feedback.';
 
+      const notaRegex = /\*{2}NOTA_RETROALIMENTACION:\s*\[?\s*(\d+(?:[.,]\d+)?)\s*\]?\*{2}/i;
       const match = feedback.match(notaRegex);
-      const gradeFeedback = match ? parseFloat(match[1]) : 0;
+      const gradeFeedback = match ? parseFloat(match[1].replace(',', '.')) : 0;
+
       await this.saveFeedbackToDB({
         ...params,
         feedback,
@@ -199,7 +204,10 @@ export class FeedbackService {
         response_mime_type: 'text/plain',
       };
 
-      const geminiClient = new GoogleGenerativeAI(model.apiKey);
+      //Desencriptar la API Key
+      const realApiKey = decrypt(model.apiKey);
+
+      const geminiClient = new GoogleGenerativeAI(realApiKey);
 
       const genModel = geminiClient.getGenerativeModel({
         model: 'gemini-2.0-flash-lite',
@@ -210,10 +218,10 @@ export class FeedbackService {
       const feedback =
         result?.response?.text() || 'No se pudo generar feedback.';
 
-      const notaRegex =
-        /\*\*NOTA_RETROALIMENTACION:\s*\[?(\d+(?:\.\d+)?)\]?\*\*/i;
+      const notaRegex = /\*{2}NOTA_RETROALIMENTACION:\s*\[?\s*(\d+(?:[.,]\d+)?)\s*\]?\*{2}/i;
       const match = feedback.match(notaRegex);
-      const gradeFeedback = match ? parseFloat(match[1]) : 0;
+      const gradeFeedback = match ? parseFloat(match[1].replace(',', '.')) : 0;
+
 
       await this.saveFeedbackToDB({
         ...params,

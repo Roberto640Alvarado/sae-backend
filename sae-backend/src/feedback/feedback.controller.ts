@@ -62,6 +62,87 @@ export class FeedbackController {
     };
   }
 
+  //Obtener la nota de la retroalimentación por nombre de repositorio
+  @Get('gradeFeedback/:repo')
+  async getFeedbackGrade(
+    @Param('repo') repo: string,
+    @Headers('authorization') authHeader: string,
+  ) {
+    const existRepo = await this.feedbackModel.findOne({ repo });
+    if (!existRepo) {
+      throw new HttpException(
+        'No se encontró el nombre de este repositorio.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    const feedback = await this.feedbackModel.findOne({ repo });
+
+    //Retornar la nota de retroalimentación
+    if (!feedback) {
+      return {
+        repo,
+        gradeFeedback: 0,
+        message: 'Este repositorio aún no tiene feedback generado.'
+      };
+    }
+
+    return {
+      repo,
+      gradeFeedback: feedback.gradeFeedback,
+      message: 'Nota de retroalimentación recuperada correctamente.',
+    };
+  }
+
+  //Actualizar la nota de retroalimentación por id de tarea y correo
+  @Patch('update/gradeFeedback')
+  async updateFeedbackGrade(
+    @Query('email') email: string,
+    @Query('idTaskGithubClassroom') idTaskGithubClassroom: string,
+    @Body('gradeFeedback') gradeFeedback: number,
+    @Headers('authorization') authHeader: string,
+  ) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    if (!email || !idTaskGithubClassroom || !gradeFeedback) {
+      throw new HttpException(
+        'Los campos email, task y feedback son requeridos.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const updated = await this.feedbackModel.findOneAndUpdate(
+      { email, idTaskGithubClassroom },
+      { gradeFeedback },
+      { new: true },
+    );
+
+    if (!updated) {
+      throw new HttpException(
+        'No se encontró una retroalimentación con ese email y tarea.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Nota de retroalimentación actualizada correctamente.',
+      data: updated,
+    };
+  }
+
   //Generar feedback con Deepseek
   @Post(':repo/deepseek')
   async generateWithDeepseek(

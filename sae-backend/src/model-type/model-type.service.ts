@@ -4,6 +4,7 @@ import { Model, ModelDocument } from './entities/model.entity';
 import { ModelType, ModelTypeDocument } from './entities/model-type.entity';
 import { User, UserDocument } from '../user/entities/user.entity';
 import { Model as MongooseModel } from 'mongoose';
+import { encrypt } from '../utils/encryption.util';
 
 @Injectable()
 export class ModelService {
@@ -28,6 +29,8 @@ export class ModelService {
     orgId?: string;
   }) {
     const { name, version, apiKey, modelType, ownerEmail, orgId } = data;
+
+    const encryptedApiKey = encrypt(apiKey);
 
     //Validar campos obligatorios
     if (!name || !version || !apiKey || !modelType) {
@@ -70,7 +73,7 @@ export class ModelService {
     const createdModel = await this.modelModel.create({
       name,
       version,
-      apiKey,
+      apiKey: encryptedApiKey,
       modelType,
       ownerEmail: ownerEmail || undefined,
       orgId: orgId || undefined,
@@ -134,6 +137,7 @@ export class ModelService {
     return model;
   }
 
+  //Obtener los modelos de un profesor
   async getModelsForTeacher(email: string, orgId: string): Promise<any[]> {
     //Traer modelos personales (por ownerEmail)
     const personalModels = await this.modelModel

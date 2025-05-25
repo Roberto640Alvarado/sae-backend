@@ -37,6 +37,9 @@ export class Feedback {
   modelIA?: string;
 
   @Prop()
+  reviewedBy?: string;
+
+  @Prop()
   createdAt?: Date;
 }
 

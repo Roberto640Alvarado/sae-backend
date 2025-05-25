@@ -7,6 +7,7 @@ export interface GenerateFeedbackParams {
     gradeTotal: number;
     gradeFeedback: number;
     modelIA: string;
+    reviewedBy: string;
     status: string;
     email: string;
     idTaskGithubClassroom: string;

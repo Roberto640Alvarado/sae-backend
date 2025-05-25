@@ -34,6 +34,7 @@ export class FeedbackService {
     gradeValue: number;
     gradeTotal: number;
     modelIA?: string;
+    reviewedBy?: string;
     status?: string;
   }) {
     await this.feedbackModel.create({

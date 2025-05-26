@@ -37,6 +37,7 @@ export class UserController {
           email: result.email,
           name: result.name,
           githubUsername: result.githubUsername,
+          urlAvatar: result.urlAvatar,
           isRoot: result.isRoot,
           organizations: result.organizations,
         },

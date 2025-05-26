@@ -15,7 +15,7 @@ export class User {
   githubUsername: string | null;
 
   @Prop({ type: String, default: null })
-  githubAccessToken: string | null;
+  urlAvatar: string | null;
 
   @Prop({ default: false })
   isRoot: boolean;

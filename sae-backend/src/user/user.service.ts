@@ -23,7 +23,7 @@ export class UserService {
   //Obtener el username y el nombre real del usuario desde GitHub
   async getGitHubUsernameAndName(
     token: string,
-  ): Promise<{ username: string; name: string }> {
+  ): Promise<{ username: string; name: string, urlAvatar: string }> {
     try {
       const response = await axios.get('https://api.github.com/user', {
         headers: this.buildHeaders(token),
@@ -31,12 +31,19 @@ export class UserService {
 
       const username = response.data.login;
       const name = response.data.name;
+      const urlAvatar = response.data.avatar_url;
 
       if (!username || !name) {
         throw new Error('No se pudo obtener el nombre o username del usuario.');
       }
 
-      return { username, name };
+      if (!urlAvatar) {
+        this.logger.warn(
+          'El usuario no tiene una URL de avatar definida en GitHub.',
+        );
+      }
+
+      return { username, name, urlAvatar };
     } catch (error) {
       this.logger.error(
         'Error obteniendo datos del usuario desde GitHub:',
@@ -155,7 +162,7 @@ export class UserService {
   async handleFirstLoginOrUpdate(token: string): Promise<any> {
     const email = await this.getGitHubPrimaryEmail(token);
     const existingUser = await this.userModel.findOne({ email });
-    const { username, name } = await this.getGitHubUsernameAndName(token);
+    const { username, name, urlAvatar } = await this.getGitHubUsernameAndName(token);
     const githubOrgs = await this.getGitHubOrganizations(token, username);
 
     //Validar el rol del usuario en la organización
@@ -207,7 +214,7 @@ export class UserService {
         email,
         githubUsername: username,
         name,
-        githubAccessToken: token,
+        urlAvatar: urlAvatar,
         isRoot: false,
         organizations: updatedOrganizations,
       });
@@ -217,13 +224,13 @@ export class UserService {
         email: newUser.email,
         name: newUser.name,
         githubUsername: newUser.githubUsername,
-        githubAccessToken: newUser.githubAccessToken,
+        urlAvatar: newUser.urlAvatar,
         organizations: newUser.organizations,
         isRoot: newUser.isRoot,
       };
     } else {
       existingUser.githubUsername = username;
-      existingUser.githubAccessToken = token;
+      existingUser.urlAvatar = urlAvatar;
       existingUser.name = name;
       existingUser.organizations = updatedOrganizations;
       await existingUser.save();
@@ -249,6 +256,7 @@ export class UserService {
           name: 1,
           githubUsername: 1,
           organizations: 1,
+          urlAvatar: 1,
         },
       )
       .lean();
@@ -263,6 +271,7 @@ export class UserService {
           email: string;
           name: string | null;
           githubUsername: string | null;
+          urlAvatar?: string | null;
           role: string;
           isActive?: boolean;
         }[];
@@ -286,6 +295,7 @@ export class UserService {
           email: user.email,
           name: user.name,
           githubUsername: user.githubUsername,
+          urlAvatar: user.urlAvatar,
           role: org.role,
           isActive: org.isActive,
         });

@@ -19,6 +19,72 @@ export class ModelService {
     private readonly userModel: MongooseModel<UserDocument>,
   ) {}
 
+  //Obtener todos los proveedores
+  async getAllProviders(): Promise<{ _id: string; name: string }[]> {
+    return this.modelTypeModel
+      .find({}, { name: 1 })
+      .lean<{ _id: string; name: string }[]>();
+  }
+
+  //Agregar un modelo a un proveedor
+  async addModelToProvider(providerId: string, modelName: string) {
+    if (!modelName) {
+      throw new Error('Debes proporcionar el nombre del modelo.');
+    }
+
+    const updated = await this.modelTypeModel.findByIdAndUpdate(
+      providerId,
+      { $addToSet: { models: modelName } },
+      { new: true },
+    );
+
+    if (!updated) {
+      throw new Error('No se encontró el proveedor para agregar el modelo.');
+    }
+
+    return updated;
+  }
+
+  //Eliminar el modelo de un proveedor
+  async removeModelFromProvider(providerId: string, modelName: string) {
+    if (!modelName) {
+      throw new Error('Debes proporcionar el nombre del modelo a eliminar.');
+    }
+
+    // Verificar que el proveedor exista
+    const provider = await this.modelTypeModel.findById(providerId);
+    if (!provider) {
+      throw new Error('No se encontró el proveedor con ese ID.');
+    }
+
+    // Verificar que el modelo exista en el array
+    if (!provider.models.includes(modelName)) {
+      throw new Error(`El modelo "${modelName}" no existe en este proveedor.`);
+    }
+
+    // Eliminar el modelo del array
+    const updated = await this.modelTypeModel.findByIdAndUpdate(
+      providerId,
+      { $pull: { models: modelName } },
+      { new: true },
+    );
+
+    return updated;
+  }
+
+  //Obtener todos los modelos de un proveedor
+  async getModelsByProviderId(providerId: string): Promise<string[]> {
+    const provider = await this.modelTypeModel
+      .findById(providerId)
+      .lean<ModelType>();
+
+    if (!provider) {
+      throw new Error('No se encontró el proveedor con ese ID.');
+    }
+
+    return provider.models || [];
+  }
+
   //Crear un modelo de IA
   async createModel(data: {
     name: string;

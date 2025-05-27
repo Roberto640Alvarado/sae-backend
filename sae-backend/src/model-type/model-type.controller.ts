@@ -276,4 +276,106 @@ export class ModelTypeController {
       models,
     };
   }
+
+  //Obtener todos los proveedores (_id y name)
+  @Get('providers')
+  async getAllProviders(@Headers('authorization') authHeader: string) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    const providers = await this.modelService.getAllProviders();
+
+    if (!providers.length) {
+      throw new HttpException(
+        'No hay proveedores registrados.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return { total: providers.length, providers };
+  }
+
+  //Agregar un modelo a un proveedor
+  @Post('providers/:id/add-model')
+  async addModelToProvider(
+    @Headers('authorization') authHeader: string,
+    @Param('id') providerId: string,
+    @Body('modelName') modelName: string,
+  ) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    try {
+      const updated = await this.modelService.addModelToProvider(
+        providerId,
+        modelName,
+      );
+      return {
+        message: `Modelo "${modelName}" agregado correctamente al proveedor.`,
+        data: updated,
+      };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  //Eliminar un modelo de un proveedor
+  @Delete('providers/:id/remove-model')
+  async removeModelFromProvider(
+    @Headers('authorization') authHeader: string,
+    @Param('id') providerId: string,
+    @Body('modelName') modelName: string,
+  ) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    try {
+      const updated = await this.modelService.removeModelFromProvider(
+        providerId,
+        modelName,
+      );
+      return {
+        message: `Modelo "${modelName}" eliminado correctamente del proveedor.`,
+        data: updated,
+      };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  //Obtener todos los modelos de un proveedor por su ID
+  @Get('providers/:id/models')
+  async getModelsByProviderId(
+    @Headers('authorization') authHeader: string,
+    @Param('id') providerId: string,
+  ) {
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    try {
+      const models = await this.modelService.getModelsByProviderId(providerId);
+      return {
+        total: models.length,
+        models,
+      };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+    }
+  }
 }

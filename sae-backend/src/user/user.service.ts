@@ -3,6 +3,14 @@ import axios from 'axios';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './entities/user.entity';
+import {
+  Model as Modeld,
+  ModelDocument,
+} from '../model-type/entities/model.entity';
+import {
+  ModelType,
+  ModelTypeDocument,
+} from '../model-type/entities/model-type.entity';
 
 @Injectable()
 export class UserService {
@@ -11,6 +19,12 @@ export class UserService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+
+    @InjectModel(Modeld.name)
+    private readonly modelModel: Model<ModelDocument>,
+
+    @InjectModel(ModelType.name)
+    private readonly modelTypeModel: Model<ModelTypeDocument>,
   ) {}
 
   private buildHeaders(token: string) {
@@ -23,7 +37,7 @@ export class UserService {
   //Obtener el username y el nombre real del usuario desde GitHub
   async getGitHubUsernameAndName(
     token: string,
-  ): Promise<{ username: string; name: string, urlAvatar: string }> {
+  ): Promise<{ username: string; name: string; urlAvatar: string }> {
     try {
       const response = await axios.get('https://api.github.com/user', {
         headers: this.buildHeaders(token),
@@ -115,7 +129,7 @@ export class UserService {
     //Filtrar el array de organizaciones para dejar solo la que coincide con el orgId
     const filteredTeachers = teachers.map((teacher) => {
       const orgMatch = teacher.organizations.filter(
-        (org) => org.orgId === orgId
+        (org) => org.orgId === orgId,
       );
       return {
         ...teacher.toObject(), //convertir a objeto plano
@@ -123,7 +137,33 @@ export class UserService {
       };
     });
 
-    return filteredTeachers;
+    //Enriquecer con los proveedores de modelos organizacionales asignados a cada profesor
+    const enrichedTeachers = await Promise.all(
+      filteredTeachers.map(async (teacher) => {
+        const orgModels = await this.modelModel
+          .find({
+            orgId, //modelo pertenece a esta organización
+            allowedTeachers: teacher.email, // el profesor tiene acceso
+          })
+          .populate<{ modelType: ModelTypeDocument }>('modelType');
+
+        //Extraer nombres únicos de proveedores
+        const providerNames = Array.from(
+          new Set(
+            orgModels
+              .map((model) => model.modelType?.name)
+              .filter((name): name is string => !!name),
+          ),
+        );
+
+        return {
+          ...teacher,
+          providers: providerNames,
+        };
+      }),
+    );
+
+    return enrichedTeachers;
   }
 
   //Obtener email por githubUsername
@@ -162,7 +202,8 @@ export class UserService {
   async handleFirstLoginOrUpdate(token: string): Promise<any> {
     const email = await this.getGitHubPrimaryEmail(token);
     const existingUser = await this.userModel.findOne({ email });
-    const { username, name, urlAvatar } = await this.getGitHubUsernameAndName(token);
+    const { username, name, urlAvatar } =
+      await this.getGitHubUsernameAndName(token);
     const githubOrgs = await this.getGitHubOrganizations(token, username);
 
     //Validar el rol del usuario en la organización

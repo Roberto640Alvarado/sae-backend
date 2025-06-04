@@ -11,7 +11,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(process.env.PORT || 3000);
+  await app.listen(process.env.PORT || 3000, 'localhost');
+
   console.log(`🚀 NestJS iniciado en ${process.env.PORT || 3000}`);
 
   await setupLti();

@@ -16,7 +16,6 @@ export class LtiValidationService {
   constructor() {
     if (!isConnected) {
       mongoose.connect(process.env.MONGO_URI!).then(() => {
-        console.log('✅ Conectado a MongoDB desde LtiValidationService');
         isConnected = true;
       });
     }
@@ -48,6 +47,26 @@ export class LtiValidationService {
     return !!feedback; //true si existe, false si no
   }
 
+  //Verifica si todos los feedback de una tarea de GitHub tienen estado 'Enviado'
+  async allFeedbackSentByGithubTask(
+    idTaskGithubClassroom: string,
+  ): Promise<boolean> {
+    //Total de registros para esa tarea
+    const total = await this.feedbackModel.countDocuments({
+      idTaskGithubClassroom,
+    });
+
+    if (total === 0) return false; // No hay registros, no puede estar "todo enviado"
+
+    // Total de registros con estado 'Enviado'
+    const enviados = await this.feedbackModel.countDocuments({
+      idTaskGithubClassroom,
+      status: 'Enviado',
+    });
+
+    return total === enviados;
+  }
+
   //Devolver informacion de id de tarea de github basado en email + idTaskMoodle + issuer
   async getIdTaskGithubByFeedback(
     email: string,
@@ -75,6 +94,22 @@ export class LtiValidationService {
     }
 
     return feedback.idTaskGithubClassroom; //Devuelve la tarea enlazada
+  }
+
+  async getFeedbackByEmailAndIdTaskGithub(
+    email: string,
+    idTaskGithub: string,
+  ): Promise<Feedback | null> {
+    const feedback = await this.feedbackModel.findOne({
+      email,
+      idTaskGithubClassroom: idTaskGithub,
+    });
+
+    if (!feedback) {
+      throw new Error('No se encontró el feedback para este usuario.');
+    }
+
+    return feedback; //Devuelve el feedback
   }
 
   //Verifica si existe un usuario basado en el email
@@ -125,6 +160,6 @@ export class LtiValidationService {
       throw new Error('No se encontró el enlace para esta tarea de Moodle.');
     }
 
-    return taskLink; 
+    return taskLink; // Devuelve la tarea enlazada
   }
 }

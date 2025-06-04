@@ -9,7 +9,7 @@ import {
   Param,
   HttpException,
   HttpStatus,
-  Headers
+  Headers,
 } from '@nestjs/common';
 import { FeedbackService } from './feedback.service';
 import { GenerateFeedbackParams } from '../shared/dto/generate-feedback.dto';
@@ -30,7 +30,8 @@ export class FeedbackController {
   @Get('status/:repo')
   async getFeedbackStatus(
     @Param('repo') repo: string,
-    @Headers('authorization') authHeader: string, ) {
+    @Headers('authorization') authHeader: string,
+  ) {
     if (!repo || typeof repo !== 'string' || repo.trim() === '') {
       throw new HttpException(
         'El parámetro "repo" es requerido y debe ser válido.',
@@ -90,7 +91,7 @@ export class FeedbackController {
       return {
         repo,
         gradeFeedback: 0,
-        message: 'Este repositorio aún no tiene feedback generado.'
+        message: 'Este repositorio aún no tiene feedback generado.',
       };
     }
 
@@ -143,76 +144,32 @@ export class FeedbackController {
     };
   }
 
-  //Generar feedback con Deepseek
-  @Post(':repo/deepseek')
-  async generateWithDeepseek(
+  //Generar feedback (MCP) dinámicamente con cualquier proveedor
+  @Post('generate/:repo')
+  async generateFeedback(
     @Param('repo') repo: string,
     @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
     @Headers('authorization') authHeader: string,
   ) {
-    try {
-
-      if (!authHeader) {
-        throw new HttpException(
-          'Token no proporcionado en el header Authorization.',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
-      const feedback = await this.feedbackService.generateFeedbackWithDeepseek({
-        repo,
-        ...body,
-      });
-      return { message: 'Feedback generado con DeepSeek', feedback };
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    if (!authHeader) {
+      throw new HttpException(
+        'Token no proporcionado en el header Authorization.',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
-  }
 
-  //Generar feedback con OpenAI
-  @Post(':repo/openai')
-  async generateWithOpenAI(
-    @Param('repo') repo: string,
-    @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
-    @Headers('authorization') authHeader: string,
-  ) {
     try {
-      if (!authHeader) {
-        throw new HttpException(
-          'Token no proporcionado en el header Authorization.',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
-      const feedback = await this.feedbackService.generateFeedbackWithOpenAI({
+      const feedback = await this.feedbackService.generateFeedback({
         repo,
         ...body,
       });
-      return { message: 'Feedback generado con OpenAI', feedback };
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-  @Post(':repo/gemini')
-  async generateWithGemini(
-    @Param('repo') repo: string,
-    @Body() body: Omit<GenerateFeedbackParams, 'repo'>,
-    @Headers('authorization') authHeader: string,
-  ) {
-    try {
-      if (!authHeader) {
-        throw new HttpException(
-          'Token no proporcionado en el header Authorization.',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
 
-      const feedback = await this.feedbackService.generateFeedbackWithGemini({
-        repo,
-        ...body,
-      });
-      return { message: 'Feedback generado con Gemini', feedback };
+      return {
+        message: 'Feedback generado correctamente.',
+        feedback,
+      };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -253,7 +210,6 @@ export class FeedbackController {
     @Body('feedback') feedback: string,
     @Headers('authorization') authHeader: string,
   ) {
-
     if (!authHeader) {
       throw new HttpException(
         'Token no proporcionado en el header Authorization.',
@@ -295,14 +251,13 @@ export class FeedbackController {
     @Query('idTaskGithubClassroom') idTaskGithubClassroom: string,
     @Headers('authorization') authHeader: string,
   ) {
-
     if (!authHeader) {
       throw new HttpException(
         'Token no proporcionado en el header Authorization.',
         HttpStatus.UNAUTHORIZED,
       );
     }
-    
+
     if (!email || !idTaskGithubClassroom) {
       throw new HttpException(
         'Los campos email y idTaskGithubClassroom son requeridos.',

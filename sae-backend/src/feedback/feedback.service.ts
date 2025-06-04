@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { OpenAI } from 'openai';
+import { ChatCompletionMessageParam } from 'openai/resources/chat';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Model } from 'mongoose';
 import { Feedback, FeedbackDocument } from './entities/feedback.entity';
@@ -8,9 +9,19 @@ import {
   Model as AIModel,
   ModelDocument,
 } from '../model-type/entities/model.entity';
-import { buildFeedbackPrompt } from '../shared/prompts/feedback-prompt.template';
-import { GenerateFeedbackParams } from '../shared/dto/generate-feedback.dto';
+import {
+  ModelType,
+  ModelTypeDocument,
+} from '../model-type/entities/model-type.entity';
+import { GenerateFeedbackParams } from './dto/generate-feedback.dto';
+import { MCPRequest } from './dto/mcp-feedback.dto';
+import { buildMCPPromptParts } from './prompts/build-mcp-prompt';
+import { extractGradeFromFeedback } from './utils/regex.util';
 import { decrypt } from '../utils/encryption.util';
+import {
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 
 @Injectable()
 export class FeedbackService {
@@ -22,9 +33,12 @@ export class FeedbackService {
 
     @InjectModel(AIModel.name)
     private modelModel: Model<ModelDocument>,
+
+    @InjectModel(ModelType.name)
+    private modelTypeModel: Model<ModelTypeDocument>,
   ) {}
 
-  // Método para guardar el feedback en MongoDB
+  //Método para guardar el feedback en MongoDB
   private async saveFeedbackToDB(data: {
     repo: string;
     email: string;
@@ -43,199 +57,184 @@ export class FeedbackService {
     this.logger.log(`Feedback guardado en MongoDB para ${data.repo}`);
   }
 
-  // Método para generar feedback con Deepseek
-  async generateFeedbackWithDeepseek(
-    params: GenerateFeedbackParams,
-  ): Promise<string> {
-    const prompt = buildFeedbackPrompt(params.readme, params.code, {
-      language: params.language,
-      subject: params.subject,
-      studentLevel: params.studentLevel,
-      topics: params.topics,
-      constraints: params.constraints,
-      style: params.style,
-    });
-
+  //-------------------------------Método para generar retroalimentacion--------------------------------------
+  async generateFeedback(params: GenerateFeedbackParams): Promise<string> {
     try {
+      //Verificar si el modelo existe
       const model = await this.modelModel.findById(params.modelId);
       if (!model) {
         throw new Error('Modelo de IA no encontrado.');
       }
 
-      //Desencriptar la API Key
-      const realApiKey = decrypt(model.apiKey);
+      console.log('Modelo encontrado:', model);
 
-      const deepseek = new OpenAI({
-        apiKey: realApiKey,
-        baseURL: 'https://api.deepseek.com',
-      });
-
-      const response = await deepseek.chat.completions.create({
-        model: 'deepseek-chat',
-        messages: [{ role: 'system', content: prompt }],
-        temperature: 1,
-        top_p: 0.95,
-      });
-
-      const feedback =
-        response?.choices?.[0]?.message?.content ||
-        'No se pudo generar feedback.';
-
-      const notaRegex = /\*{2}NOTA_RETROALIMENTACION:\s*\[?\s*(\d+(?:[.,]\d+)?)\s*\]?\*{2}/i;
-      const match = feedback.match(notaRegex);
-      const gradeFeedback = match ? parseFloat(match[1].replace(',', '.')) : 0;
-
-      await this.saveFeedbackToDB({
-        ...params,
-        feedback,
-        gradeFeedback,
-        status: 'Generado',
-        modelIA: 'Deepseek',
-      });
-
-      return feedback;
-    } catch (error) {
-      this.logger.error('Error generando feedback con Deepseek', error);
-      throw new Error('No se pudo generar la retroalimentación.');
-    }
-  }
-
-  // Método para generar feedback con OpenAI
-  async generateFeedbackWithOpenAI(
-    params: GenerateFeedbackParams,
-  ): Promise<string> {
-    const prompt = buildFeedbackPrompt(params.readme, params.code, {
-      language: params.language,
-      subject: params.subject,
-      studentLevel: params.studentLevel,
-      topics: params.topics,
-      constraints: params.constraints,
-      style: params.style,
-    });
-
-    try {
-      const model = await this.modelModel.findById(params.modelId);
-      if (!model) {
-        throw new Error('Modelo de IA no encontrado.');
+      //Extraer nombre del modelo
+      const modelName = model.version;
+      if (!modelName) {
+        throw new Error('Nombre del modelo no encontrado.');
       }
 
-      //Desencriptar la API Key
-      const realApiKey = decrypt(model.apiKey);
+      //Api Key desencriptada
+      const apiKey = decrypt(model.apiKey);
+      if (!apiKey) {
+        throw new Error('API Key no encontrada o inválida.');
+      }
 
-      const openai = new OpenAI({ apiKey: realApiKey });
+      //Extraer nombre del proveedor de IA
+      const modelTypeIA = await this.modelTypeModel.findById(model.modelType);
+      const provider = (modelTypeIA?.name || 'Desconocido') as 'OpenAI' | 'DeepSeek' | 'Gemini';
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: prompt },
-          {
-            role: 'user',
-            content:
-              'Por favor, proporciona una evaluación detallada del código proporcionado.',
-          },
-        ],
-        temperature: 0.7,
-        top_p: 0.95,
-      });
+      console.log('Proveedor de IA:', provider);
+      console.log('Nombre del modelo:', modelName);
+      console.log('API Key:', apiKey);
 
-      const feedback =
-        response?.choices?.[0]?.message?.content ||
-        'No se pudo generar feedback.';
+      const { context, instruction, input, userPrompt } = buildMCPPromptParts(
+        params.readme,
+        params.code,
+        {
+          language: params.language,
+          subject: params.subject,
+          studentLevel: params.studentLevel,
+          topics: params.topics,
+          constraints: params.constraints,
+          style: params.style,
+        },
+      );
 
-      const notaRegex = /\*{2}NOTA_RETROALIMENTACION:\s*\[?\s*(\d+(?:[.,]\d+)?)\s*\]?\*{2}/i;
-      const match = feedback.match(notaRegex);
-      const gradeFeedback = match ? parseFloat(match[1].replace(',', '.')) : 0;
-
-      await this.saveFeedbackToDB({
-        ...params,
-        feedback,
-        gradeFeedback,
-        status: 'Generado',
-        modelIA: 'OpenAI',
-      });
-
-      return feedback;
-    } catch (error) {
-      this.logger.error('Error generando feedback con OpenAI', error);
-      throw new Error('No se pudo generar la retroalimentación.');
-    }
-  }
-
-  //Método para generar feedback con Gemini
-  async generateFeedbackWithGemini(
-    params: GenerateFeedbackParams,
-  ): Promise<string> {
-    const {
-      modelId,
-      repo,
-      readme,
-      code,
-      email,
-      gradeValue,
-      gradeTotal,
-      idTaskGithubClassroom,
-      language,
-      subject,
-      studentLevel,
-      topics,
-      constraints,
-      style,
-    } = params;
-
-    const model = await this.modelModel.findById(modelId);
-    if (!model) {
-      throw new Error('El modelo con ese ID no existe.');
-    }
-
-    const prompt = buildFeedbackPrompt(readme, code, {
-      language,
-      subject,
-      studentLevel,
-      topics,
-      constraints,
-      style,
-    });
-
-    try {
-      const generationConfig = {
-        temperature: 1,
-        top_p: 0.95,
-        top_k: 40,
-        max_output_tokens: 8192,
-        response_mime_type: 'text/plain',
+      const mcp = {
+        context,
+        instruction,
+        input,
+        userPrompt,
+        model: {
+          name: modelName,
+          provider,
+          temperature: provider === 'OpenAI' ? 0.7 : 1,
+        },
       };
 
-      //Desencriptar la API Key
-      const realApiKey = decrypt(model.apiKey);
+      let feedback = '';
 
-      const geminiClient = new GoogleGenerativeAI(realApiKey);
+      switch (provider) {
+        case 'OpenAI':
+          feedback = await this.callOpenAI(mcp, apiKey);
+          break;
+        case 'DeepSeek':
+          feedback = await this.callDeepSeek(mcp, apiKey);
+          break;
+        case 'Gemini':
+          feedback = await this.callGemini(mcp, apiKey);
+          break;
+        default:
+          throw new Error(`Proveedor de modelo no soportado: ${provider}`);
+      }
 
-      const genModel = geminiClient.getGenerativeModel({
-        model: 'gemini-2.0-flash-lite',
-        generationConfig,
-      });
-
-      const result = await genModel.generateContent(prompt);
-      const feedback =
-        result?.response?.text() || 'No se pudo generar feedback.';
-
-      const notaRegex = /\*{2}NOTA_RETROALIMENTACION:\s*\[?\s*(\d+(?:[.,]\d+)?)\s*\]?\*{2}/i;
-      const match = feedback.match(notaRegex);
-      const gradeFeedback = match ? parseFloat(match[1].replace(',', '.')) : 0;
-
+      const gradeFeedback = extractGradeFromFeedback(feedback);
 
       await this.saveFeedbackToDB({
         ...params,
         feedback,
         gradeFeedback,
         status: 'Generado',
-        modelIA: 'Gemini',
+        modelIA: provider,
       });
 
       return feedback;
     } catch (error) {
-      this.logger.error('Error generando feedback con Gemini', error);
-      throw new Error('No se pudo generar la retroalimentación.');
+      this.logger.error('Error al generar la retroalimentación:', error);
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
+  //----------------------------------------------------------------------------------------------------------
+
+  //-------------------------------Método para llamar a OpenAI------------------------------------------------
+  private async callOpenAI(mcp: MCPRequest, apiKey: string): Promise<string> {
+    const openai = new OpenAI({ apiKey });
+
+    const response = await openai.chat.completions.create({
+      model: mcp.model.name,
+      messages: [
+        { role: 'system', content: `${mcp.context}\n\n${mcp.instruction}\n\n${mcp.input}` },
+        {
+          role: 'user',
+          content: mcp.userPrompt || mcp.input,
+        },
+      ],
+      temperature: mcp.model.temperature,
+      top_p: 0.95,
+    });
+
+    return (
+      response?.choices?.[0]?.message?.content || 'No se pudo generar feedback.'
+    );
+  }
+  //----------------------------------------------------------------------------------------------------------
+
+  //-------------------------------Método para llamar a DeepSeek----------------------------------------------
+  private async callDeepSeek(mcp: MCPRequest, apiKey: string): Promise<string> {
+    const deepseek = new OpenAI({
+      apiKey,
+      baseURL: 'https://api.deepseek.com',
+    });
+
+    const isReasoner = mcp.model.name === 'deepseek-reasoner';
+
+    let messages: ChatCompletionMessageParam[];
+
+    if (isReasoner) {
+      messages = [
+        {
+          role: 'system',
+          content: `${mcp.context}\n\n${mcp.instruction}\n\n${mcp.input}`,
+        },
+        {
+          role: 'user',
+          content: mcp.userPrompt || mcp.input,
+        },
+      ];
+    } else {
+      messages = [
+        {
+          role: 'system',
+          content: `${mcp.context}\n\n${mcp.instruction}\n\n${mcp.input}`,
+        },
+      ];
+    }
+
+    const response = await deepseek.chat.completions.create({
+      model: mcp.model.name,
+      messages,
+      temperature: mcp.model.temperature,
+      top_p: 0.95,
+    });
+
+    return (
+      response?.choices?.[0]?.message?.content || 'No se pudo generar feedback.'
+    );
+  }
+  //----------------------------------------------------------------------------------------------------------
+
+  //-------------------------------Método para llamar a Gemini------------------------------------------------
+  private async callGemini(mcp: MCPRequest, apiKey: string): Promise<string> {
+    const geminiClient = new GoogleGenerativeAI(apiKey);
+
+    const genModel = geminiClient.getGenerativeModel({
+      model: mcp.model.name,
+      generationConfig: {
+        temperature: mcp.model.temperature,
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 8192,
+      },
+    });
+
+    const prompts = [
+      `${mcp.context}\n\n${mcp.instruction}\n\n${mcp.input}`,
+    ];
+
+    const result = await genModel.generateContent(prompts);
+
+    return result?.response?.text() || 'No se pudo generar feedback.';
+  }
+  //------------------------------------------------------------------------------------------------------
 }

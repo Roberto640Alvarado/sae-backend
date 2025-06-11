@@ -26,10 +26,7 @@ export const setupLti = async () => {
   console.log('Conectado a MongoDB');
 
   lti.onConnect(async (token, req, res) => {
-    const cmid = req.headers.referer?.match(/id=(\d+)/)?.[1];
     const ltiService = new LtiValidationService();
-    console.log('cmid:', cmid);
-    //console.log('Token:', token);
     const name = token.userInfo?.name || 'Sin nombre';
     const email = token.userInfo?.email || 'Sin email';
     const roles = token.platformContext?.roles || [];
@@ -183,7 +180,7 @@ export const setupLti = async () => {
             }
 
             return res.redirect(
-              `https://sae2025.netlify.app/repositorios?${queryToken}`,
+              `https://assesscode.com/repositorios?${queryToken}`,
             );
           }
 
@@ -234,7 +231,7 @@ export const setupLti = async () => {
           <a href="?accion=enviarNotas&ltik=${req.query.ltik}">
             <button class="moodle">Enviar notas a Moodle</button>
           </a>
-          <a href="https://sae2025.netlify.app/repositorios?${queryToken}">
+          <a href="https://assesscode.com/repositorios?${queryToken}">
             <button class="sae">Ir a SAE</button>
           </a>
         </div>
@@ -247,14 +244,14 @@ export const setupLti = async () => {
 
         // Si no hay notas
         return res.redirect(
-          `https://sae2025.netlify.app/repositorios?${queryToken}`,
+          `https://assesscode.com/repositorios?${queryToken}`,
         );
       } else {
         console.log('Esta tarea no ha sido enlazada a una tarea de github');
         const payload = { email, isMoodle, courseId, assignmentId, issuer };
         const token = jwtService.generateToken(payload, '1h');
         const query = new URLSearchParams({ token }).toString();
-        return res.redirect(`https://sae2025.netlify.app?${query}`);
+        return res.redirect(`https://assesscode.com?${query}`);
       }
     } else if (isStudent) {
       //No Existe usuario en SAE
@@ -265,7 +262,7 @@ export const setupLti = async () => {
         const payload = { isMoodle, isStudentMoodle };
         const token = jwtService.generateToken(payload, '1h');
         const query = new URLSearchParams({ token }).toString();
-        return res.redirect(`https://sae2025.netlify.app?${query}`);
+        return res.redirect(`https://assesscode.com?${query}`);
       } else {
         console.log('Este usuario ya existe en SAE');
 
@@ -274,7 +271,7 @@ export const setupLti = async () => {
         if (!hasTaskLink) {
           console.log('Esta tarea no ha sido enlazada a una tarea de github');
 
-          return res.redirect('https://sae2025.netlify.app/NoDisponible'); //Redirigir a una pagina de error,
+          return res.redirect('https://assesscode.com/NoDisponible'); //Redirigir a una pagina de error,
         } else {
           console.log('Esta tarea ya fue enlazada a una tarea de github');
           const hasFeedback = await ltiService.hasFeedback(
@@ -293,7 +290,7 @@ export const setupLti = async () => {
             const token = jwtService.generateToken(payload, '1h');
             const query = new URLSearchParams({ token }).toString();
             return res.redirect(
-              `https://sae2025.netlify.app/feedback?${query}`,
+              `https://assesscode.com/feedback?${query}`,
             );
           } else {
             console.log('Este usuario no tiene feedback en esta tarea');
@@ -305,7 +302,7 @@ export const setupLti = async () => {
             const token = jwtService.generateToken(payload, '1h');
             const query = new URLSearchParams({ token }).toString();
             return res.redirect(
-              `https://sae2025.netlify.app/invitacion?${query}`,
+              `https://assesscode.com/invitacion?${query}`,
             );
           }
         }

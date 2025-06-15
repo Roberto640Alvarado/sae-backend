@@ -16,6 +16,7 @@ import { GenerateFeedbackParams } from '../shared/dto/generate-feedback.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Feedback, FeedbackDocument } from './entities/feedback.entity';
+import { extractGradeFromFeedback } from './utils/regex.util';
 
 @Controller('feedback')
 export class FeedbackController {
@@ -224,9 +225,11 @@ export class FeedbackController {
       );
     }
 
+    const gradeFeedback = extractGradeFromFeedback(feedback);
+
     const updated = await this.feedbackModel.findOneAndUpdate(
       { email, idTaskGithubClassroom },
-      { feedback },
+      { feedback, gradeFeedback },
       { new: true },
     );
 
@@ -236,6 +239,7 @@ export class FeedbackController {
         HttpStatus.NOT_FOUND,
       );
     }
+
 
     return {
       statusCode: HttpStatus.OK,

@@ -215,7 +215,7 @@ export const setupLti = async () => {
             cursor: pointer;
           }
           .sae {
-            background-color: #3498db;
+            background-color: #19AA59;
             color: white;
           }
           .moodle {

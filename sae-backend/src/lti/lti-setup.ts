@@ -3,6 +3,7 @@ import * as mongoose from 'mongoose';
 import * as dotenv from 'dotenv';
 import { LtiValidationService } from './lti-validation.service';
 import { JwtService } from '../jwt/jwt.service';
+import {logo} from '../assets/logo.png'
 
 dotenv.config();
 
@@ -190,39 +191,47 @@ export const setupLti = async () => {
       <head>
         <title>Enviar notas</title>
         <style>
-          body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-          }
-          .card {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 320px;
-          }
-          button {
-            margin: 10px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-          }
-          .sae {
-            background-color: #19AA59;
-            color: white;
-          }
-          .moodle {
-            background-color: #19AA59;
-            color: white; 
-          }
-        </style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      .card {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        text-align: center;
+        width: 320px;
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+      }
+      button {
+        margin: 10px 0; 
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        width: 260px; 
+        height: 50px; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .sae {
+        background-color: #19AA59;
+        color: white;
+      }
+      .moodle {
+        background-color: #19AA59;
+        color: white;
+      }
+    </style>
       </head>
       <body>
         <div class="card">
@@ -232,7 +241,7 @@ export const setupLti = async () => {
             <button class="moodle">Enviar notas a Moodle</button>
           </a>
           <a href="https://assesscode.com/repositorios?${queryToken}">
-            <button class="sae">Ir a SAE</button>
+            <button class="sae">Ir a AssessCode</button>
           </a>
         </div>
       </body>

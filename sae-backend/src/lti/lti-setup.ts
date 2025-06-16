@@ -230,6 +230,9 @@ export const setupLti = async () => {
         background-color: #19AA59;
         color: white;
       }
+      a {
+        text-decoration: none;
+      }
     </style>
       </head>
       <body>

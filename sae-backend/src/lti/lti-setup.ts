@@ -3,7 +3,6 @@ import * as mongoose from 'mongoose';
 import * as dotenv from 'dotenv';
 import { LtiValidationService } from './lti-validation.service';
 import { JwtService } from '../jwt/jwt.service';
-import {logo} from '../assets/logo.png'
 
 dotenv.config();
 

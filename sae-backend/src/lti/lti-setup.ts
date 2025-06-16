@@ -190,49 +190,65 @@ export const setupLti = async () => {
       <head>
         <title>Enviar notas</title>
         <style>
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         font-family: Arial, sans-serif;
         background: #f5f5f5;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 20px;
         height: 100vh;
+        margin: 0;
       }
+
       .card {
         background: white;
         padding: 30px;
         border-radius: 10px;
         box-shadow: 0 0 10px rgba(0,0,0,0.1);
         text-align: center;
-        width: 320px;
+        width: 100%;
+        max-width: 360px;
         display: flex; 
         flex-direction: column; 
-        align-items: center; 
+        align-items: center;
       }
+
+      .card h2 {
+        margin-top: 0;
+      }
+
       button {
-        margin: 10px 0; 
-        padding: 10px 20px;
+        margin: 10px 0;
+        padding: 12px 20px;
         border: none;
         border-radius: 5px;
         font-weight: bold;
         cursor: pointer;
-        width: 260px; 
-        height: 50px; 
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        width: 100%;
+        height: 50px;
+        transition: background-color 0.3s ease;
+        font-size: 16px;
       }
-      .sae {
+
+      .sae, .moodle {
         background-color: #19AA59;
         color: white;
       }
-      .moodle {
-        background-color: #19AA59;
-        color: white;
+
+      .sae:hover, .moodle:hover {
+        background-color: #148c4a;
       }
+
       a {
         text-decoration: none;
+        width: 100%;
       }
+
     </style>
       </head>
       <body>

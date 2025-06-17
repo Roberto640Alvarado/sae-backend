@@ -41,9 +41,32 @@ export const setupLti = async () => {
     const isMoodle = true;
     const url_return = token.platformContext?.launchPresentation?.return_url;
 
+    //ROLES
+    let role = 'Unknown';
+
+    if (roles.some((r) => r.includes('#Administrator'))) {
+      role = 'Admin';
+    } else if (roles.some((r) => r.includes('#Instructor'))) {
+      role = 'Teacher';
+    } else if (roles.some((r) => r.includes('#Learner'))) {
+      role = 'Student';
+    }
+
     //VALIDACIONES
 
     if (isInstructor || isAdmin) {
+
+      //Validar si existe teacher
+      const hasTeacher = await ltiService.hasUser(email);
+      if (!hasTeacher) {
+        console.log('Este usuario no existe en SAE');
+        const isTeacherMoodle = true;
+        const payload = { isMoodle, isTeacherMoodle, role };
+        const token = jwtService.generateToken(payload, '1h');
+        const query = new URLSearchParams({ token }).toString();
+        return res.redirect(`https://assesscode.com?${query}`);
+      }
+
       //Validar si la tarea ya fue enlazada a una tarea de github
       const hasTaskLink = await ltiService.hasTaskLink(assignmentId, issuer);
       if (hasTaskLink) {
@@ -286,7 +309,7 @@ export const setupLti = async () => {
       if (!hasUser) {
         console.log('Este usuario no existe en SAE');
         const isStudentMoodle = true;
-        const payload = { isMoodle, isStudentMoodle };
+        const payload = { isMoodle, isStudentMoodle, role };
         const token = jwtService.generateToken(payload, '1h');
         const query = new URLSearchParams({ token }).toString();
         return res.redirect(`https://assesscode.com?${query}`);
@@ -316,9 +339,7 @@ export const setupLti = async () => {
             const payload = { email, isMoodle, idTaskClassroom, name };
             const token = jwtService.generateToken(payload, '1h');
             const query = new URLSearchParams({ token }).toString();
-            return res.redirect(
-              `https://assesscode.com/feedback?${query}`,
-            );
+            return res.redirect(`https://assesscode.com/feedback?${query}`);
           } else {
             console.log('Este usuario no tiene feedback en esta tarea');
             const urlInvitation = await ltiService.getInvitationUrlByMoodleTask(
@@ -328,9 +349,7 @@ export const setupLti = async () => {
             const payload = { isMoodle, urlInvitation, name };
             const token = jwtService.generateToken(payload, '1h');
             const query = new URLSearchParams({ token }).toString();
-            return res.redirect(
-              `https://assesscode.com/invitacion?${query}`,
-            );
+            return res.redirect(`https://assesscode.com/invitacion?${query}`);
           }
         }
       }

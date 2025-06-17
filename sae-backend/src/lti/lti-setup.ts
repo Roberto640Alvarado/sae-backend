@@ -89,6 +89,7 @@ export const setupLti = async () => {
           idtaskmoodle,
           isMoodle,
           url_return,
+          role
         };
 
         if (!idtaskgithub) {
@@ -298,7 +299,7 @@ export const setupLti = async () => {
         );
       } else {
         console.log('Esta tarea no ha sido enlazada a una tarea de github');
-        const payload = { email, isMoodle, courseId, assignmentId, issuer };
+        const payload = { email, isMoodle, courseId, assignmentId, issuer, role };
         const token = jwtService.generateToken(payload, '1h');
         const query = new URLSearchParams({ token }).toString();
         return res.redirect(`https://assesscode.com?${query}`);
@@ -336,7 +337,7 @@ export const setupLti = async () => {
               assignmentId,
               issuer,
             ); //Id de la tarea de classroom
-            const payload = { email, isMoodle, idTaskClassroom, name };
+            const payload = { email, isMoodle, idTaskClassroom, name, role };
             const token = jwtService.generateToken(payload, '1h');
             const query = new URLSearchParams({ token }).toString();
             return res.redirect(`https://assesscode.com/feedback?${query}`);
@@ -346,7 +347,7 @@ export const setupLti = async () => {
               assignmentId,
               issuer,
             );
-            const payload = { isMoodle, urlInvitation, name };
+            const payload = { isMoodle, urlInvitation, name, role };
             const token = jwtService.generateToken(payload, '1h');
             const query = new URLSearchParams({ token }).toString();
             return res.redirect(`https://assesscode.com/invitacion?${query}`);

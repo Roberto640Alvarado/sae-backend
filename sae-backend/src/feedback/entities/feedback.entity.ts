@@ -40,6 +40,9 @@ export class Feedback {
   reviewedBy?: string;
 
   @Prop()
+  durationMs?: number;
+
+  @Prop()
   createdAt?: Date;
 }
 

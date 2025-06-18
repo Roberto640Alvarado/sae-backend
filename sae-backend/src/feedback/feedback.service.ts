@@ -50,6 +50,7 @@ export class FeedbackService {
     modelIA?: string;
     reviewedBy?: string;
     status?: string;
+    durationMs?: number;
   }) {
     await this.feedbackModel.create({
       ...data,
@@ -61,6 +62,7 @@ export class FeedbackService {
   async generateFeedback(params: GenerateFeedbackParams): Promise<string> {
     try {
       //Verificar si el modelo existe
+      const start = Date.now();
       const model = await this.modelModel.findById(params.modelId);
       if (!model) {
         throw new Error('Modelo de IA no encontrado.');
@@ -131,12 +133,15 @@ export class FeedbackService {
 
       const gradeFeedback = extractGradeFromFeedback(feedback);
 
+      const duration = Date.now() - start;
+
       await this.saveFeedbackToDB({
         ...params,
         feedback,
         gradeFeedback,
         status: 'Generado',
         modelIA: provider,
+        durationMs: duration,
       });
 
       return feedback;

@@ -9,6 +9,7 @@ export interface GenerateFeedbackParams {
     modelIA: string;
     reviewedBy: string;
     status: string;
+    durationMs?: number;
     email: string;
     idTaskGithubClassroom: string;
     language: string;

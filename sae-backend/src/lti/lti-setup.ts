@@ -59,7 +59,7 @@ export const setupLti = async () => {
       //Validar si existe teacher
       const hasTeacher = await ltiService.hasUser(email);
       if (!hasTeacher) {
-        console.log('Este usuario no existe en SAE');
+        console.log(`El usuario ${email} no existe en AssessCode`);
         const isTeacherMoodle = true;
         const payload = { isMoodle, isTeacherMoodle, role, url_return };
         const token = jwtService.generateToken(payload, '1h');
@@ -308,14 +308,14 @@ export const setupLti = async () => {
       //No Existe usuario en SAE
       const hasUser = await ltiService.hasUser(email);
       if (!hasUser) {
-        console.log('Este usuario no existe en SAE');
+        console.log(`El usuario ${email} no existe en AssessCode`);
         const isStudentMoodle = true;
         const payload = { isMoodle, isStudentMoodle, role, url_return };
         const token = jwtService.generateToken(payload, '1h');
         const query = new URLSearchParams({ token }).toString();
         return res.redirect(`https://assesscode.com?${query}`);
       } else {
-        console.log('Este usuario ya existe en SAE');
+        console.log(`El usuario ${email} ya existe en AssessCode`);
 
         //Verificamos si la tarea ya fue enlazada a una tarea de github
         const hasTaskLink = await ltiService.hasTaskLink(assignmentId, issuer);

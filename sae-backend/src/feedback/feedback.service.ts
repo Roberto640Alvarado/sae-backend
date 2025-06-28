@@ -86,10 +86,6 @@ export class FeedbackService {
       const modelTypeIA = await this.modelTypeModel.findById(model.modelType);
       const provider = (modelTypeIA?.name || 'Desconocido') as 'OpenAI' | 'DeepSeek' | 'Gemini';
 
-      console.log('Proveedor de IA:', provider);
-      console.log('Nombre del modelo:', modelName);
-      console.log('API Key:', apiKey);
-
       const { context, instruction, input, userPrompt } = buildMCPPromptParts(
         params.readme,
         params.code,

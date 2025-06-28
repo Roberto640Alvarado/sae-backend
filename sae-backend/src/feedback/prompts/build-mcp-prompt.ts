@@ -77,6 +77,7 @@ Usa Markdown como formato de salida.
 **NOTA_RETROALIMENTACION: [X]**
 Donde X es la nota final (puede ser decimal como 8.5). No pongas ningún otro texto en esa línea.
 Ejemplo: **NOTA_RETROALIMENTACION: [7.5]**
+Si no recibes archivo de código, debes poner una nota de 0 y siguiendo el formato indicado. ejemplo: **NOTA_RETROALIMENTACION: [0]**.
 ---  
 `;
 

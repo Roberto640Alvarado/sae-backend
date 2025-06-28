@@ -158,7 +158,7 @@ export class RepoService {
 
       if (!matchingFiles.length) {
         throw new Error(
-          `No se encontró ningún archivo con la extensión "${extension}" en el repositorio.`,
+          `No se encontró ningún archivo con la extensión "${extension}" en el repositorio "${repo}" .`,
         );
       }
 
@@ -177,7 +177,7 @@ export class RepoService {
       };
     } catch (error) {
       this.logger.error(
-        `Error obteniendo contenido del repositorio: ${error.message}`,
+        `Error obteniendo contenido del repositorio: "${repo}" ERROR: ${error.message}`,
       );
       return null;
     }

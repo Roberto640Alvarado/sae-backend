@@ -5,6 +5,10 @@ import {
 } from '../task-link/entities/TaskLink.entity';
 import { Feedback, FeedbackSchema } from '../feedback/entities/feedback.entity';
 import { User, UserSchema } from '../user/entities/user.entity';
+import {
+  TaskFeedbackStatus,
+  TaskFeedbackStatusSchema,
+} from '../task/entities/task.entity';
 
 let isConnected = false;
 
@@ -12,6 +16,7 @@ export class LtiValidationService {
   private taskLinkModel: Model<TaskLink>;
   private feedbackModel: Model<Feedback>;
   private userModel: Model<User>;
+  private taskModel: Model<TaskFeedbackStatus>;
 
   constructor() {
     if (!isConnected) {
@@ -22,6 +27,10 @@ export class LtiValidationService {
     this.taskLinkModel = mongoose.model<TaskLink>('TaskLink', TaskLinkSchema);
     this.feedbackModel = mongoose.model<Feedback>('Feedback', FeedbackSchema);
     this.userModel = mongoose.model<User>('User', UserSchema);
+    this.taskModel = mongoose.model<TaskFeedbackStatus>(
+      'TaskFeedbackStatus',
+      TaskFeedbackStatusSchema,
+    );
   }
 
   //Verifica si existe feedback basado en email + idTaskMoodle + issuer
@@ -48,24 +57,23 @@ export class LtiValidationService {
   }
 
   //Verifica si todos los feedback de una tarea de GitHub tienen estado 'Enviado'
-  async allFeedbackSentByGithubTask(
-    idTaskGithubClassroom: string,
-  ): Promise<boolean> {
-    //Total de registros para esa tarea
-    const total = await this.feedbackModel.countDocuments({
+  async allFeedbackSentByGithubTask(idTaskGithubClassroom: string): Promise<boolean> {
+  const resumen = await this.taskModel.findOne({ idTaskGithubClassroom });
+  if (!resumen) return false;
+
+  const total = await this.feedbackModel.countDocuments({
       idTaskGithubClassroom,
     });
 
-    if (total === 0) return false; // No hay registros, no puede estar "todo enviado"
+  if (total === 0) return false;
 
-    // Total de registros con estado 'Enviado'
-    const enviados = await this.feedbackModel.countDocuments({
-      idTaskGithubClassroom,
-      status: 'Enviado',
-    });
+  const enviados = await this.feedbackModel.countDocuments({
+    idTaskGithubClassroom,
+    status: 'Enviado',
+  });
 
-    return total === enviados;
-  }
+  return resumen.countEntregas === enviados && enviados > 0;
+}
 
   //Devolver informacion de id de tarea de github basado en email + idTaskMoodle + issuer
   async getIdTaskGithubByFeedback(

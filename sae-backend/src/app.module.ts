@@ -7,6 +7,7 @@ import { TaskConfigModule } from './task-config/task-config.module';
 import { TaskLinkModule } from './task-link/task-link.module';
 import { JwtModule } from './jwt/jwt.module';
 import { UserModule } from './user/user.module';
+import { TaskModule } from './task/task.module';
 import { JenkinsResultModule } from './JenkinsResult/jenkins-result.module';
 import { MongooseModule } from '@nestjs/mongoose';
 
@@ -29,6 +30,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     TaskLinkModule,
     JwtModule,
     UserModule,
+    TaskModule,
   ],
 })
 export class AppModule {}
